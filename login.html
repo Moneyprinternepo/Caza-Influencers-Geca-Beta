@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Modal - Caza Influencers</title>
+  <style>
+    :root {
+      --primary: #ef4444;
+      --primary-dark: #7f1d1d;
+      --bg-dark: #111;
+      --bg-card: #1f1f1f;
+      --bg-input: #2d2d2d;
+      --text: #fff;
+      --text-secondary: #aaa;
+      --border: #444;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #222;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    /* Contenedor de demostración */
+    .demo-container {
+      width: 100%;
+      max-width: 1200px;
+      height: 600px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      border-radius: 10px;
+      padding: 20px;
+      color: var(--text);
+    }
+    
+    .demo-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .demo-header h1 {
+      font-size: 3rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      background: linear-gradient(to right, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      color: transparent;
+      margin-bottom: 20px;
+    }
+    
+    .demo-content {
+      text-align: center;
+      margin-top: 100px;
+    }
+    
+    /* Botón para abrir el modal */
+    .show-login-btn {
+      padding: 12px 25px;
+      background: linear-gradient(to right, var(--primary), var(--primary-dark));
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      margin: 20px auto;
+      display: block;
+    }
+    
+    /* Modal de login */
+    .login-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .login-modal.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .login-container {
+      background: var(--bg-card);
+      border: 1px solid var(--primary);
+      border-radius: 10px;
+      padding: 30px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      transform: translateY(-50px);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .login-modal.active .login-container {
+      transform: translateY(0);
+    }
+    
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    
+    .close-btn:hover {
+      color: var(--primary);
+    }
+    
+    h2 {
+      font-size: 2rem;
+      text-align: center;
+      background: linear-gradient(to right, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      color: transparent;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      display: block;
+      margin: 0 auto 20px;
+      height: 60px;
+    }
+    
+    .input-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--text-secondary);
+    }
+    
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 5px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    button[type="submit"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 5px;
+      background: linear-gradient(to right, var(--primary), var(--primary-dark));
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    button[type="submit"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .error-message {
+      color: var(--primary);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      text-align: center;
+      display: none;
+      animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    
+    .forgot-password {
+      display: block;
+      text-align: right;
+      margin-top: 5px;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      text-decoration: none;
+    }
+    
+    .forgot-password:hover {
+      color: var(--primary);
+    }
+    
+    .status-message {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      background: var(--bg-card);
+      border-left: 4px solid var(--primary);
+      color: var(--text);
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: none;
+      z-index: 1010;
+      animation: slideIn 0.3s forwards;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Contenedor de demostración para visualizar el modal -->
+  <div class="demo-container">
+    <div class="demo-header">
+      <h1>Caza Influencers</h1>
+    </div>
+    
+    <div class="demo-content">
+      <p>Haz clic en el botón para probar el modal de inicio de sesión</p>
+      <button class="show-login-btn" id="showLogin">Iniciar sesión</button>
+    </div>
+  </div>
+  
+  <!-- Modal de login -->
+  <div class="login-modal" id="loginModal">
+    <div class="login-container">
+      <button class="close-btn" id="closeLogin">&times;</button>
+      <img src="https://placehold.co/200x60?text=Marca" alt="Logo" class="logo">
+      <h2>Acceso a la plataforma</h2>
+      <form id="login-form">
+        <div class="input-group">
+          <label for="username">Usuario</label>
+          <input type="text" id="username" required autocomplete="username">
+        </div>
+        <div class="input-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" required autocomplete="current-password">
+          <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+        </div>
+        <button type="submit">Iniciar sesión</button>
+      </form>
+      <p id="error-message" class="error-message">Usuario o contraseña incorrectos</p>
+    </div>
+  </div>
+  
+  <!-- Mensaje de estado -->
+  <div class="status-message" id="statusMessage"></div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script>
+    // Elementos del DOM
+    const loginModal = document.getElementById('loginModal');
+    const showLoginBtn = document.getElementById('showLogin');
+    const closeLoginBtn = document.getElementById('closeLogin');
+    const loginForm = document.getElementById('login-form');
+    const errorMessage = document.getElementById('error-message');
+    const statusMessage = document.getElementById('statusMessage');
+    
+    // Mock de usuarios (en producción se cargaría desde CSV)
+    let users = [
+      { username: 'admin', password: 'admin123', role: 'administrator' },
+      { username: 'Filmax', password: 'PolCrack', role: 'client' },
+      { username: 'Geca', password: 'Geca123', role: 'analyst' }
+    ];
+    
+    // Función para cargar usuarios desde CSV (comentada para la demostración)
+    /*
+    function loadUsers() {
+      Papa.parse('data/users.csv', {
+        download: true,
+        header: true,
+        complete: function(results) {
+          users = results.data;
+          console.log('Usuarios cargados:', users.length);
+        },
+        error: function(error) {
+          console.error('Error cargando usuarios:', error);
+          showStatus('Error cargando datos de usuarios', 'error');
+        }
+      });
+    }
+    */
+    
+    // Función para validar credenciales
+    function validateLogin(username, password) {
+      return users.some(user => 
+        user.username === username && user.password === password
+      );
+    }
+    
+    // Función para mostrar mensajes de estado
+    function showStatus(message, type = 'success') {
+      statusMessage.textContent = message;
+      statusMessage.style.borderLeftColor = type === 'error' ? '#ef4444' : '#22c55e';
+      statusMessage.style.display = 'block';
+      
+      setTimeout(() => {
+        statusMessage.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Abrir modal
+    showLoginBtn.addEventListener('click', () => {
+      loginModal.classList.add('active');
+      document.getElementById('username').focus();
+    });
+    
+    // Cerrar modal
+    closeLoginBtn.addEventListener('click', () => {
+      loginModal.classList.remove('active');
+    });
+    
+    // Cerrar modal haciendo clic fuera
+    loginModal.addEventListener('click', (e) => {
+      if (e.target === loginModal) {
+        loginModal.classList.remove('active');
+      }
+    });
+    
+    // Manejar envío del formulario
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      if (validateLogin(username, password)) {
+        // Simulación de login exitoso
+        errorMessage.style.display = 'none';
+        showStatus(`Bienvenido, ${username}!`);
+        
+        // En una implementación real, aquí guardaríamos la sesión
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('username', username);
+        
+        // Cerramos el modal después de un breve delay
+        setTimeout(() => {
+  window.location.href = 'index.html';
+}, 1000);
+      } else {
+        // Mostrar error
+        errorMessage.style.display = 'block';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+      }
+    });
+    
+    // Inicialización (cargar usuarios)
+    document.addEventListener('DOMContentLoaded', () => {
+      // En un caso real, aquí cargaríamos los usuarios
+      // loadUsers();
+      
+      // Verificar si ya hay sesión (para la demo, siempre mostramos el modal)
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      if (!isLoggedIn) {
+        // Autoabrir para la demo
+        setTimeout(() => {
+          loginModal.classList.add('active');
+        }, 500);
+      }
+    });
+  </script>
+</body>
+</html>
