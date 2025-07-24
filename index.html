@@ -82,7 +82,7 @@
       <button class="tab" data-tab="campanas">Tus campañas</button>
     </div>
 
-    <!-- VISTA EXPLORAR (Sin cambios) -->
+    <!-- VISTA EXPLORAR -->
     <div id="explore-view">
       <div class="filter-bar">
         <select id="platform-filter"><option value="Todos">Todas las plataformas</option><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option><option value="TikTok">TikTok</option><option value="Reddit">Reddit</option></select>
@@ -96,9 +96,8 @@
       <div id="detail-container" class="detail-view hidden"></div>
     </div>
     
-    <!-- VISTA CAMPAÑAS (Solo visualización) -->
+    <!-- VISTA CAMPAÑAS -->
     <div id="campaign-view" class="hidden">
-        <!-- 1. Vista General (Dashboard) -->
         <div id="campaign-overview-view">
             <div class="campaign-header">
                 <div>
@@ -118,20 +117,10 @@
                     <option value="performance">Ratio Resultados/Precio</option>
                 </select>
             </div>
-            <div id="campaign-overview-content">
-                <!-- Contenido generado por JS -->
-            </div>
+            <div id="campaign-overview-content"></div>
         </div>
-
-        <!-- 2. Vista de Lista de Campañas -->
-        <div id="campaign-list-view" class="hidden">
-            <!-- Contenido generado por JS -->
-        </div>
-
-        <!-- 3. Vista de Detalle de Campaña -->
-        <div id="campaign-detail-view" class="hidden">
-             <!-- Contenido generado por JS -->
-        </div>
+        <div id="campaign-list-view" class="hidden"></div>
+        <div id="campaign-detail-view" class="hidden"></div>
     </div>
     
     <div id="loader" class="loader"></div>
@@ -144,19 +133,14 @@
     let influencersData = [];
     let campaignsData = [];
 
-    // --- Selectores DOM ---
     const mainContent = document.getElementById('mainContent');
     const tabs = document.querySelectorAll('.tab');
     const exploreView = document.getElementById('explore-view');
     const campaignView = document.getElementById('campaign-view');
     const loader = document.getElementById('loader');
-    
-    // --- Selectores EXPLORAR ---
     const searchBtn = document.getElementById('search-btn');
     const resultsContainer = document.getElementById('results-container');
     const detailContainer = document.getElementById('detail-container');
-    
-    // --- Selectores CAMPAÑAS ---
     const campaignOverviewView = document.getElementById('campaign-overview-view');
     const campaignListView = document.getElementById('campaign-list-view');
     const campaignDetailView = document.getElementById('campaign-detail-view');
@@ -171,14 +155,18 @@
         loader.classList.remove('hidden');
         mainContent.classList.add('hidden');
 
-        // PapaParse necesita un timestamp para evitar la caché del navegador al recargar
         const noCache = `?t=${new Date().getTime()}`;
 
         const influencersPromise = new Promise((resolve, reject) => {
             Papa.parse(`data/influencers.csv${noCache}`, {
-                download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                delimiter: ";", // <-- CAMBIO IMPORTANTE
                 complete: ({ data }) => {
-                    influencersData = data;
+                    const cleanData = data.filter(row => row.id != null && row.id !== "");
+                    influencersData = cleanData;
                     resolve();
                 },
                 error: err => reject(new Error(`influencers.csv: ${err.message}`))
@@ -187,11 +175,23 @@
 
         const campaignsPromise = new Promise((resolve, reject) => {
              Papa.parse(`data/campaigns.csv${noCache}`, {
-                download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                delimiter: ";", // <-- CAMBIO IMPORTANTE
                 complete: ({ data }) => {
-                    // Limpiamos la columna de comentarios si existe
-                    const cleanData = data.map(c => {
+                    const cleanData = data.filter(row => row.id != null && row.id !== "").map(c => {
                         delete c._comment;
+                        // Corregir fechas DD/MM/AAAA a AAAA-MM-DD para que JS las entienda
+                        if (c.startDate && typeof c.startDate === 'string' && c.startDate.includes('/')) {
+                            const parts = c.startDate.split('/');
+                            c.startDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
+                        if (c.endDate && typeof c.endDate === 'string' && c.endDate.includes('/')) {
+                            const parts = c.endDate.split('/');
+                            c.endDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
                         return c;
                     });
                     campaignsData = cleanData.map(c => ({
@@ -213,7 +213,7 @@
             })
             .catch(error => {
                 loader.classList.add('hidden');
-                mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos 'influencers.csv' y 'campaigns.csv' están en la carpeta /data.</p>`;
+                mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos CSV están en la carpeta /data, guardados como UTF-8 y con el delimitador correcto (;).</p>`;
                 mainContent.classList.remove('hidden');
                 console.error(error);
             });
@@ -223,7 +223,6 @@
         loader.classList.add('hidden');
         mainContent.classList.remove('hidden');
         searchBtn.removeAttribute('disabled');
-        // Inicializar la vista por defecto (Explorar)
         handleTabClick({ target: document.querySelector('.tab.active') });
     }
 
@@ -248,6 +247,8 @@
             campaignView.classList.remove('hidden');
             if(campaignsData.length > 0) {
               showCampaignView('overview');
+            } else {
+              campaignOverviewContent.innerHTML = '<p>No se encontraron datos de campañas. Revisa el archivo <code>data/campaigns.csv</code>.</p>';
             }
         }
     }
@@ -277,7 +278,7 @@
        VISTA CAMPAÑAS
     -------------------------------------------------------------*/
     function renderCampaignOverview() {
-        const campaignTypes = [...new Set(campaignsData.map(c => c.type))];
+        const campaignTypes = [...new Set(campaignsData.map(c => c.type).filter(Boolean))];
         const sortKey = campaignSortFilter.value;
 
         let sortedData = [...campaignsData];
@@ -426,8 +427,8 @@
       const tag2Filter=document.getElementById('tag2-filter');
       tag1Filter.length=1;tag2Filter.length=1;
       const allNiches = influencersData.flatMap(it => {
-        if (Array.isArray(it.niche)) return it.niche;
-        return typeof it.niche === 'string' ? it.niche.split('|').map(s => s.trim()) : [];
+        if (!it.niche || typeof it.niche !== 'string') return [];
+        return it.niche.split('|').map(s => s.trim());
       });
       const tags = [...new Set(allNiches)].sort();
       tags.forEach(tag=>{
@@ -448,7 +449,7 @@
         const term=document.getElementById('search-input').value.toLowerCase();
 
         filteredInfluencers = influencersData.filter(it=>{
-          const niches = Array.isArray(it.niche) ? it.niche : (typeof it.niche === 'string' ? it.niche.split('|').map(s => s.trim()) : []);
+          const niches = (typeof it.niche === 'string') ? it.niche.split('|').map(s => s.trim()) : [];
           if(platform!=='Todos' && it.platform!==platform) return false;
           if(followers==='<100K' && it.followers>=100000) return false;
           if(followers==='100K-500K' && (it.followers<100000||it.followers>500000)) return false;
@@ -468,7 +469,7 @@
       resultsContainer.innerHTML='';
       if(filteredInfluencers.length===0){resultsContainer.innerHTML='<p>No se encontraron influencers.</p>';return;}
       
-      const calculateImpact = i => ((i.likesAvg/i.followers + i.commentsAvg/i.followers)*100*1.2).toFixed(2);
+      const calculateImpact = i => (i.followers > 0 ? ((i.likesAvg/i.followers + i.commentsAvg/i.followers)*100*1.2).toFixed(2) : '0.00');
 
       filteredInfluencers.forEach(item=>{
         const impact=calculateImpact(item);item.impact=impact;
@@ -481,7 +482,7 @@
 
     function displayInfluencerDetail(inf){
       resultsContainer.classList.add('hidden');detailContainer.classList.remove('hidden');
-      const niches = Array.isArray(inf.niche) ? inf.niche : (typeof inf.niche === 'string' ? inf.niche.split('|').map(s => s.trim()) : []);
+      const niches = (typeof inf.niche === 'string') ? inf.niche.split('|').map(s => s.trim()) : [];
       const demoPlatforms=[{name:'Instagram',value:40},{name:'YouTube',value:30},{name:'TikTok',value:20},{name:'Facebook',value:10}];
       const demoAges=[{range:'<12',value:3},{range:'13-17',value:12},{range:'18-24',value:25},{range:'25-34',value:30},{range:'35-44',value:15},{range:'45-54',value:10},{range:'55-64',value:3},{range:'>65',value:2}];
       const demoGender=[{name:'Hombres',value:55},{name:'Mujeres',value:45}];
@@ -499,17 +500,10 @@
        INICIALIZACIÓN Y EVENTOS
     -------------------------------------------------------------*/
     document.addEventListener('DOMContentLoaded', () => {
-        // Event listeners generales
         tabs.forEach(t => t.addEventListener('click', handleTabClick));
-        
-        // Listeners vista Explorar
         searchBtn.onclick = filterInfluencersData;
-
-        // Listeners vista Campañas
         campaignSortFilter.onchange = renderCampaignOverview;
-        reloadDataBtn.onclick = loadData; // El botón de recarga vuelve a llamar a la función de carga
-        
-        // Cargar todos los datos al iniciar
+        reloadDataBtn.onclick = loadData;
         loadData();
     });
   </script>
