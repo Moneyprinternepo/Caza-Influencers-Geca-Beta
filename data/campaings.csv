@@ -1,6 +1,4 @@
-id,type,name,description,budget,impressions,clicks,reach,cpc,cpm,startDate,endDate,status,influencerId
-1700000000001,Meta,"Lanzamiento Verano 2024","Campaña de alcance en Instagram y Facebook para la nueva colección.",1500,250000,12000,180000,0.13,6.00,2024-06-01,2024-06-30,Completada,
-1700000000002,Meta,"Rebajas Finales","Anuncios de carrusel para liquidar stock de la temporada anterior.",800,180000,9500,110000,0.08,4.44,2024-08-15,2024-08-31,Completada,
-1700000000003,Influencer,"Colaboración ElRubius","Unboxing y review del nuevo producto estrella en su canal de YouTube.",5000,1200000,85000,950000,,,2024-07-10,2024-07-10,Completada,2
-1700000000004,Influencer,"Stories con Patry Jordan","Serie de 5 stories en Instagram mostrando el uso del producto.",1200,350000,15000,300000,,,2024-09-05,2024-09-05,Activa,4
-1700000000005,Meta,"Captación Leads Q4","Campaña de generación de leads para el newsletter de Navidad.",2500,400000,18000,320000,0.14,6.25,2024-10-01,2024-11-15,Activa,
+Id,Name,Type,Content,Goal,Range,Spent,Days Active,Spent Per Day,Views,Cost Per 100 Individuals,Reach,Frequency,Link Clicks,Cost Per Click,Click Rate,Interactions,3s Views,Retention Rate,Reactions,Tickets Sold,Ticket Rate
+1,Superman,Meta,Video,Rendimiento,km25+ Cines,115.98,7,16.57,67821.00,1.71,54586.00,1.24,1408,0.08,2.08,28617,26826,39.55,348,,
+2,Fantastic 4,Meta,Video,Rendimiento,km20+ Barce,120.56,5,24.11,93019,1.30,69720,1.33,2171,0.06,2.33,39383,36532,39.27,635,,
+3,Jurassic Worl,Meta,Video,Rendimiento,km30+ Barce,132.18,7,18.88,62606,2.11,59743,1.05,2078,0.06,3.32,22911,20549,32.82,241,,
