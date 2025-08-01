@@ -38,7 +38,7 @@
     .loader{border:5px solid var(--bg-input);border-top:5px solid var(--primary);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:20px auto}
     @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
     
-    /* --- ESTILOS CAMPAÑAS (Podio) --- */
+    /* ESTILOS CAMPAÑAS (Podio) */
     .campaign-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
     .podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px;min-height:280px}
     .podium-item{border-radius:10px 10px 0 0;padding:20px;text-align:center;transition:all .3s ease;cursor:pointer;position:relative;width:28%;background-size:cover;background-position:center}
@@ -64,12 +64,12 @@
     .campaign-list-item .info h4{font-size:1.1rem;margin:0}
     .campaign-list-item .metric{font-size:1.1rem;font-weight:bold;color:var(--success);min-width:120px;text-align:right}
 
-    /* --- NUEVOS ESTILOS DETALLE DE CAMPAÑA ANALÍTICO --- */
+    /* ESTILOS DETALLE DE CAMPAÑA ANALÍTICO */
     .campaign-detail-container{padding:20px; background: var(--bg-dark);}
     .campaign-detail-header h2{color:var(--primary)}
     .campaign-detail-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-top:20px}
     .charts-section{display:flex;flex-direction:column;gap:20px}
-    .chart-wrapper{background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border)}
+    .chart-wrapper{background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border); height: 350px;} /* CAMBIO: Altura fija */
     .chart-wrapper h3{margin-bottom:15px;color:var(--text-secondary)}
     .kpis-section{display:flex;flex-direction:column;gap:20px}
     .kpi-card-small{background:var(--bg-card);padding:15px;border-radius:10px;border:1px solid var(--border)}
@@ -78,6 +78,8 @@
     .kpi-card-small .kpi-subtitle{font-size:0.8rem;color:#888}
     .kpi-card-small.highlight{border-color:var(--success);background:linear-gradient(45deg, var(--bg-card), #1a4d2e)}
     .kpi-card-small.highlight .kpi-value{color:var(--success)}
+    .kpi-image-card { padding: 0; overflow: hidden; }
+    .kpi-image-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
     @media(max-width:900px){.campaign-detail-main-grid{grid-template-columns:1fr}.charts-section,.kpis-section{order:1}}
   </style>
@@ -114,7 +116,11 @@
             <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:30px">
                 <label for="campaign-sort-filter" class="text-secondary" style="align-self:center">Ordenar por:</label>
                 <select id="campaign-sort-filter">
-                    <option value="performance">Ratio de Rendimiento</option><option value="impressions">Impresiones (Más a Menos)</option><option value="budget">Presupuesto (Más a Menos)</option><option value="cpc">Coste por Clic (Menos a Más)</option>
+                    <option value="performance">Ratio de Rendimiento</option>
+                    <option value="clickRate">Click Rate (Más a Menos)</option> <!-- CAMBIO: Nueva opción -->
+                    <option value="impressions">Impresiones (Más a Menos)</option>
+                    <option value="budget">Presupuesto (Más a Menos)</option>
+                    <option value="cpc">Coste por Clic (Menos a Más)</option>
                 </select>
             </div>
             <div id="campaign-overview-content"></div>
@@ -126,14 +132,12 @@
   <script>
     let influencersData = [], campaignsData = [];
     const mainContent = document.getElementById('mainContent'), tabs = document.querySelectorAll('.tab'), exploreView = document.getElementById('explore-view'), campaignView = document.getElementById('campaign-view'), loader = document.getElementById('loader'), searchBtn = document.getElementById('search-btn'), resultsContainer = document.getElementById('results-container'), detailContainer = document.getElementById('detail-container'), campaignOverviewView = document.getElementById('campaign-overview-view'), campaignDetailView = document.getElementById('campaign-detail-view'), campaignOverviewContent = document.getElementById('campaign-overview-content'), campaignSortFilter = document.getElementById('campaign-sort-filter'), reloadDataBtn = document.getElementById('reload-data-btn');
-    let charts = {}; // Para destruir gráficos y evitar problemas
+    let charts = {};
 
     function loadData() {
         loader.classList.remove('hidden'); mainContent.classList.add('hidden');
         const noCache = `?t=${new Date().getTime()}`;
-        const influencersPromise = new Promise((resolve, reject) => {
-            Papa.parse(`data/influencers.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => { influencersData = data.filter(r => r.id != null && r.id !== "").map(r => ({ ...r, platform: (r.platform && typeof r.platform === 'string') ? (r.platform.toLowerCase() === 'youtube' ? 'YouTube' : r.platform.charAt(0).toUpperCase() + r.platform.slice(1).toLowerCase()) : r.platform })); resolve(); }, error: err => reject(new Error(`influencers.csv: ${err.message}`)) });
-        });
+        const influencersPromise = new Promise((resolve, reject) => { Papa.parse(`data/influencers.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => { influencersData = data.filter(r => r.id != null && r.id !== "").map(r => ({ ...r, platform: (r.platform && typeof r.platform === 'string') ? (r.platform.toLowerCase() === 'youtube' ? 'YouTube' : r.platform.charAt(0).toUpperCase() + r.platform.slice(1).toLowerCase()) : r.platform })); resolve(); }, error: err => reject(new Error(`influencers.csv: ${err.message}`)) }); });
         const campaignsPromise = new Promise((resolve, reject) => {
              Papa.parse(`data/campaigns.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => {
                     campaignsData = data.filter(r => r.Id != null && r.Id !== "").map(c => {
@@ -141,8 +145,7 @@
                         const imageFile = c.imageFile || null;
                         const imageUrl = imageFile ? `images/${imageFile}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.Name)}&background=1f1f1f&color=fff&size=128`;
                         return { id:c.Id, name:c.Name, type, budget, impressions, reach, clicks, interactions, retention, clickRate, ticketsSold, views3s, imageUrl, status:c.Status||'Activa', description:c.Description||`Campaña de ${c.Content} para ${c.Name}. Objetivo: ${c.Goal}.`, cpc:clicks>0?(budget/clicks):0, cpm:impressions>0?(budget/impressions)*1000:0, performance:(type==='Meta'&&budget>0?(reach/budget):(impressions/budget))||0 };
-                    });
-                    resolve();
+                    }); resolve();
                 }, error: err => reject(new Error(`campaigns.csv: ${err.message}`)) });
         });
         Promise.all([influencersPromise, campaignsPromise]).then(() => { console.log("Todos los datos cargados."); initApp(); }).catch(error => { loader.classList.add('hidden'); mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos CSV están en la carpeta /data, guardados como UTF-8 y con el delimitador correcto (,).</p>`; mainContent.classList.remove('hidden'); });
@@ -150,20 +153,14 @@
 
     function initApp() { loader.classList.add('hidden'); mainContent.classList.remove('hidden'); searchBtn.removeAttribute('disabled'); handleTabClick({ target: document.querySelector('.tab.active') }); }
     function handleTabClick(e) { tabs.forEach(t => t.classList.remove('active')); e.target.classList.add('active'); exploreView.classList.add('hidden'); campaignView.classList.add('hidden'); if (e.target.dataset.tab === 'explorar') { exploreView.classList.remove('hidden'); if (influencersData.length > 0) { populateTagFilters(); filterInfluencersData(); } } else { campaignView.classList.remove('hidden'); showCampaignView('overview'); } }
+    function showCampaignView(viewName, params = {}) { campaignOverviewView.classList.add('hidden'); campaignDetailView.classList.add('hidden'); if (viewName === 'overview') { renderCampaignOverview(); campaignOverviewView.classList.remove('hidden'); } else { renderCampaignDetail(params.id); campaignDetailView.classList.remove('hidden'); } }
     
-    function showCampaignView(viewName, params = {}) { 
-        campaignOverviewView.classList.add('hidden'); 
-        campaignDetailView.classList.add('hidden'); 
-        if (viewName === 'overview') { renderCampaignOverview(); campaignOverviewView.classList.remove('hidden'); } 
-        else { renderCampaignDetail(params.id); campaignDetailView.classList.remove('hidden'); } 
-    }
-
     function renderCampaignOverview() {
         if (campaignsData.length === 0) { campaignOverviewContent.innerHTML = '<p>No se encontraron datos de campañas.</p>'; return; }
         const sortKey = campaignSortFilter.value;
         let sortedData = [...campaignsData].sort((a,b) => (sortKey === 'cpc' ? (a[sortKey] || Infinity) - (b[sortKey] || Infinity) : (b[sortKey] || 0) - (a[sortKey] || 0)));
         const podium = sortedData.slice(0, 3), rest = sortedData.slice(3);
-        const getMetricDisplay = (c, key) => { const val = c[key] || 0; if (key === 'budget') return val.toLocaleString('es-ES', {style:'currency', currency:'EUR'}); if (key === 'cpc') return val.toFixed(2) + '€'; if (key === 'performance') return val.toFixed(2) + ' pts'; return val.toLocaleString(); };
+        const getMetricDisplay = (c, key) => { const val = c[key] || 0; if (key === 'budget') return val.toLocaleString('es-ES', {style:'currency', currency:'EUR'}); if (key === 'cpc' || key === 'clickRate') return val.toFixed(2) + (key === 'cpc' ? '€' : '%'); if (key === 'performance') return val.toFixed(2) + ' pts'; return val.toLocaleString(); };
         const podiumHTML = `<div class="podium-container">${podium.map((c, i) => `<div class="podium-item podium-item--${i+1}" data-id="${c.id}" style="background-image: url('${c.imageUrl}');"><div class="podium-rank">${i+1}</div><div class="podium-name">${c.name}</div><div class="podium-metric">${getMetricDisplay(c, sortKey)}</div></div>`).join('')}</div>`;
         const listHTML = rest.length > 0 ? `<div class="campaign-list-container"><h3>Resto de campañas</h3>${rest.map((c, i) => `<div class="campaign-list-item" data-id="${c.id}"><img src="${c.imageUrl}" alt="${c.name}" class="campaign-list-thumbnail"><div class="info"><h4>${c.name}</h4><p class="text-secondary">${c.type}</p></div><span class="metric">${getMetricDisplay(c, sortKey)}</span></div>`).join('')}</div>` : '';
         campaignOverviewContent.innerHTML = podiumHTML + listHTML;
@@ -173,7 +170,7 @@
     function destroyCharts() { for (const chartId in charts) { if (charts[chartId]) { charts[chartId].destroy(); delete charts[chartId]; } } }
 
     function renderCampaignDetail(id) {
-        destroyCharts(); // Destruir gráficos anteriores
+        destroyCharts();
         const c = campaignsData.find(c => c.id == id);
         if (!c) { campaignDetailView.innerHTML = `<p>Campaña no encontrada.</p>`; return; }
         
@@ -198,25 +195,18 @@
                         </div>
                     </div>
                     <div class="kpis-section">
+                        <div class="kpi-card-small kpi-image-card">
+                            <img src="${c.imageUrl}" alt="Imagen de la campaña ${c.name}">
+                        </div>
                         <div class="kpi-card-small highlight">
                             <div class="kpi-title">Tickets Vendidos</div>
-                            <div class="kpi-value">${c.ticketsSold.toLocaleString()}</div>
+                            <div class="kpi-value">${(c.ticketsSold || 0).toLocaleString()}</div>
                             <div class="kpi-subtitle">Resultado Principal</div>
                         </div>
                         <div class="kpi-card-small">
                             <div class="kpi-title">Coste por Clic (CPC)</div>
                             <div class="kpi-value">${c.cpc.toFixed(2)}€</div>
                             <div class="kpi-subtitle">${c.clicks.toLocaleString()} clics totales</div>
-                        </div>
-                        <div class="kpi-card-small">
-                            <div class="kpi-title">Coste por Mil (CPM)</div>
-                            <div class="kpi-value">${c.cpm.toFixed(2)}€</div>
-                            <div class="kpi-subtitle">${c.impressions.toLocaleString()} impresiones</div>
-                        </div>
-                        <div class="kpi-card-small">
-                            <div class="kpi-title">Click-Through Rate (CTR)</div>
-                            <div class="kpi-value">${c.clickRate.toFixed(2)}%</div>
-                            <div class="kpi-subtitle">Eficiencia del anuncio</div>
                         </div>
                         <div class="kpi-card-small">
                             <div class="kpi-title">Tasa de Retención (3s)</div>
@@ -227,7 +217,6 @@
                 </div>
             </div>`;
         
-        // Crear nuevos gráficos
         createCampaignOverviewChart('campaign-overview-chart', c);
         createEngagementFunnelChart('engagement-funnel-chart', c);
     }
@@ -237,10 +226,10 @@
         charts[canvasId] = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Presupuesto (€)', 'Alcance', 'Clics'],
+                labels: ['Visualizaciones', 'Cuentas alcanzadas', 'Clics en el enlace'], // CAMBIO: Nuevas etiquetas
                 datasets: [{
                     label: 'Valor',
-                    data: [data.budget, data.reach, data.clicks],
+                    data: [data.impressions, data.reach, data.clicks], // CAMBIO: Nuevos datos
                     backgroundColor: ['#7f1d1d', '#ef4444', '#f59e0b'],
                 }]
             },
@@ -260,11 +249,10 @@
                     backgroundColor: ['#4c1d95', '#6d28d9', '#8b5cf6', '#a78bfa'],
                 }]
             },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#aaa' }, grid: { color: '#444' } }, x: { ticks: { color: '#aaa' }, grid: { color: '#444' } } } }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#aaa' }, grid: { color: '#444' } }, x: { beginAtZero: true, ticks: { color: '#aaa' }, grid: { color: '#444' } } } }
         });
     }
 
-    // --- Lógica de Explorar (Minimizada, sin cambios) ---
     let filteredInfluencers = []; function populateTagFilters(){const t1=document.getElementById('tag1-filter'),t2=document.getElementById('tag2-filter');t1.length=1;t2.length=1;const n=influencersData.flatMap(i=>(!i.niche||typeof i.niche!=='string')?[]:i.niche.split('|').map(s=>s.trim()));[...new Set(n.filter(Boolean))].sort().forEach(tag=>{t1.appendChild(new Option(tag,tag));t2.appendChild(new Option(tag,tag))})}
     function filterInfluencersData(){loader.classList.remove('hidden');resultsContainer.classList.add('hidden');setTimeout(()=>{const p=document.getElementById('platform-filter').value,f=document.getElementById('followers-filter').value,t1=document.getElementById('tag1-filter').value,t2=document.getElementById('tag2-filter').value,term=document.getElementById('search-input').value.toLowerCase();filteredInfluencers=influencersData.filter(i=>{const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()):[];if(p!=='Todos'&&i.platform!==p)return false;if(f==='<100K'&&i.followers>=1e5)return false;if(f==='100K-500K'&&(i.followers<1e5||i.followers>5e5))return false;if(f==='>500K'&&i.followers<=5e5)return false;if(t1!=='Todos'&&!n.includes(t1))return false;if(t2!=='Todos'&&!n.includes(t2))return false;if(term&&!i.name.toLowerCase().includes(term)&&!n.some(s=>s.toLowerCase().includes(term)))return false;return true});displayInfluencerResults();loader.classList.add('hidden');resultsContainer.classList.remove('hidden')},300)}
     function displayInfluencerResults(){resultsContainer.innerHTML='';if(filteredInfluencers.length===0){resultsContainer.innerHTML='<p>No se encontraron influencers.</p>';return}const calcImpact=i=>((i.likesAvg||0)+(i.commentsAvg||0)*1.5)/(i.followers||1);const impacts=filteredInfluencers.map(calcImpact);const maxImpact=Math.max(...impacts)||1;filteredInfluencers.forEach(i=>{const rawImpact=calcImpact(i);const impact=((rawImpact/maxImpact)*100).toFixed(2);i.impact=impact;const card=document.createElement('div');card.className='result-card';card.innerHTML=`<h3>${i.name}</h3><p class="text-secondary">${i.platform}</p><p>👥 Seguidores: ${(i.followers||0).toLocaleString()}</p><p>❤️ Likes: ${(i.likesAvg||0).toLocaleString()}</p><p>💬 Comentarios: ${(i.commentsAvg||0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${impact}%</p>`;card.addEventListener('click',()=>{displayInfluencerDetail(i)});resultsContainer.appendChild(card)})}
