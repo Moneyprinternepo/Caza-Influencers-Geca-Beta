@@ -163,10 +163,24 @@
                 header: true,
                 dynamicTyping: true,
                 skipEmptyLines: true,
-                delimiter: ";", // <-- CAMBIO IMPORTANTE
+                delimiter: ",", // <-- CAMBIO: Delimitador a coma
                 complete: ({ data }) => {
-                    const cleanData = data.filter(row => row.id != null && row.id !== "");
-                    influencersData = cleanData;
+                    let cleanData = data.filter(row => row.id != null && row.id !== "");
+                    
+                    // CAMBIO: Normalizar datos para asegurar consistencia
+                    influencersData = cleanData.map(row => {
+                        let platform = row.platform;
+                        if (platform && typeof platform === 'string') {
+                            if (platform.toLowerCase() === 'youtube') {
+                                platform = 'YouTube';
+                            } else {
+                                // Pone en mayúscula la primera letra
+                                platform = platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase();
+                            }
+                        }
+                        return { ...row, platform: platform };
+                    });
+
                     resolve();
                 },
                 error: err => reject(new Error(`influencers.csv: ${err.message}`))
@@ -179,27 +193,33 @@
                 header: true,
                 dynamicTyping: true,
                 skipEmptyLines: true,
-                delimiter: ";", // <-- CAMBIO IMPORTANTE
+                delimiter: ",", // <-- CAMBIO: Delimitador a coma
                 complete: ({ data }) => {
-                    const cleanData = data.filter(row => row.id != null && row.id !== "").map(c => {
-                        delete c._comment;
-                        // Corregir fechas DD/MM/AAAA a AAAA-MM-DD para que JS las entienda
-                        if (c.startDate && typeof c.startDate === 'string' && c.startDate.includes('/')) {
-                            const parts = c.startDate.split('/');
-                            c.startDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        }
-                        if (c.endDate && typeof c.endDate === 'string' && c.endDate.includes('/')) {
-                            const parts = c.endDate.split('/');
-                            c.endDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        }
-                        return c;
+                    let cleanData = data.filter(row => row.Id != null && row.Id !== "");
+                    
+                    // CAMBIO: Mapear los datos del CSV de campañas a la estructura que espera la app
+                    campaignsData = cleanData.map(c => {
+                        const budget = c.Spent || 0;
+                        const impressions = c.Views || 0;
+                        const reach = c.Reach || 0;
+                        const clicks = c['Link Clicks'] || 0;
+                        const type = c.Type || 'Unknown';
+
+                        return {
+                            id: c.Id,
+                            name: c.Name,
+                            type: type,
+                            budget: budget,
+                            impressions: impressions,
+                            reach: reach,
+                            clicks: clicks,
+                            status: c.Status || 'Activa', // Valor por defecto si no existe
+                            description: c.Description || `Campaña de ${c.Content} para ${c.Name}. Objetivo: ${c.Goal}.`, // Valor por defecto
+                            cpc: clicks > 0 ? (budget / clicks) : 0,
+                            cpm: impressions > 0 ? (budget / impressions) * 1000 : 0,
+                            performance: (type === 'Meta' && budget > 0 ? (reach / budget) : (impressions / budget)) || 0
+                        };
                     });
-                    campaignsData = cleanData.map(c => ({
-                      ...c,
-                      cpc: c.cpc ?? (c.clicks > 0 ? (c.budget / c.clicks) : 0),
-                      cpm: c.cpm ?? (c.impressions > 0 ? (c.budget / c.impressions) * 1000 : 0),
-                      performance: (c.type === 'Meta' && c.budget > 0 ? (c.reach / c.budget) : (c.impressions / c.budget)) || 0
-                    }));
                     resolve();
                 },
                 error: err => reject(new Error(`campaigns.csv: ${err.message}`))
@@ -213,7 +233,7 @@
             })
             .catch(error => {
                 loader.classList.add('hidden');
-                mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos CSV están en la carpeta /data, guardados como UTF-8 y con el delimitador correcto (;).</p>`;
+                mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos CSV están en la carpeta /data, guardados como UTF-8 y con el delimitador correcto (,).</p>`;
                 mainContent.classList.remove('hidden');
                 console.error(error);
             });
@@ -330,12 +350,14 @@
             ? `<p class="text-secondary">Alcance: <span class="stat">${c.reach?.toLocaleString() ?? 'N/A'}</span></p>`
             : `<p class="text-secondary">Impresiones: <span class="stat">${c.impressions?.toLocaleString() ?? 'N/A'}</span></p>`;
         
+        const statusClass = c.status?.toLowerCase() || 'activa';
+        
         return `
             <div class="campaign-card" data-id="${c.id}">
                 <h4>${c.name}</h4>
                 <p class="text-secondary">Presupuesto: <span class="stat">${c.budget?.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</span></p>
                 ${performanceMetric}
-                <span class="status-badge ${c.status?.toLowerCase()}">${c.status}</span>
+                <span class="status-badge ${statusClass}">${c.status}</span>
             </div>
         `;
     }
@@ -364,7 +386,7 @@
                             <td>${c.budget?.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
                             <td>${c.impressions?.toLocaleString() ?? 'N/A'}</td>
                             <td>${(type === 'Meta' ? c.reach?.toLocaleString() : c.clicks?.toLocaleString()) ?? 'N/A'}</td>
-                            <td><span class="status-badge ${c.status?.toLowerCase()}">${c.status}</span></td>
+                            <td><span class="status-badge ${c.status?.toLowerCase() || 'activa'}">${c.status}</span></td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -385,12 +407,13 @@
         }
 
         const influencerName = campaign.influencerId ? (influencersData.find(i => i.id == campaign.influencerId)?.name || 'Desconocido') : 'N/A';
+        const statusClass = campaign.status?.toLowerCase() || 'activa';
         
         let detailsHtml = `
             <div class="campaign-header">
                 <div>
                     <h2 style="color:var(--primary);margin-bottom:5px">${campaign.name}</h2>
-                    <p class="text-secondary">${campaign.type} • Estado: <span class="status-badge ${campaign.status?.toLowerCase()}">${campaign.status}</span></p>
+                    <p class="text-secondary">${campaign.type} • Estado: <span class="status-badge ${statusClass}">${campaign.status}</span></p>
                 </div>
                 <button class="btn btn-secondary" id="back-to-list-from-detail">← Volver a la lista</button>
             </div>
@@ -430,7 +453,7 @@
         if (!it.niche || typeof it.niche !== 'string') return [];
         return it.niche.split('|').map(s => s.trim());
       });
-      const tags = [...new Set(allNiches)].sort();
+      const tags = [...new Set(allNiches.filter(Boolean))].sort();
       tags.forEach(tag=>{
         tag1Filter.appendChild(new Option(tag,tag));
         tag2Filter.appendChild(new Option(tag,tag));
@@ -469,12 +492,17 @@
       resultsContainer.innerHTML='';
       if(filteredInfluencers.length===0){resultsContainer.innerHTML='<p>No se encontraron influencers.</p>';return;}
       
-      const calculateImpact = i => (i.followers > 0 ? ((i.likesAvg/i.followers + i.commentsAvg/i.followers)*100*1.2).toFixed(2) : '0.00');
+      const calculateImpact = i => ((i.likesAvg || 0) + (i.commentsAvg || 0) * 1.5) / (i.followers || 1);
+      const impactScores = filteredInfluencers.map(calculateImpact);
+      const maxImpact = Math.max(...impactScores) || 1;
 
       filteredInfluencers.forEach(item=>{
-        const impact=calculateImpact(item);item.impact=impact;
+        const rawImpact = calculateImpact(item);
+        const impact = ((rawImpact / maxImpact) * 100).toFixed(2);
+        item.impact = impact;
+
         const card=document.createElement('div');card.className='result-card';
-        card.innerHTML=`<h3>${item.name}</h3><p class="text-secondary">${item.platform}</p><p>👥 Seguidores: ${item.followers.toLocaleString()}</p><p>❤️ Likes: ${item.likesAvg.toLocaleString()}</p><p>💬 Comentarios: ${item.commentsAvg.toLocaleString()}</p><p class="text-impact">📊 Impacto: ${impact}%</p>`;
+        card.innerHTML=`<h3>${item.name}</h3><p class="text-secondary">${item.platform}</p><p>👥 Seguidores: ${(item.followers || 0).toLocaleString()}</p><p>❤️ Likes: ${(item.likesAvg || 0).toLocaleString()}</p><p>💬 Comentarios: ${(item.commentsAvg || 0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${impact}%</p>`;
         card.addEventListener('click',()=>{ displayInfluencerDetail(item) });
         resultsContainer.appendChild(card);
       });
@@ -482,11 +510,11 @@
 
     function displayInfluencerDetail(inf){
       resultsContainer.classList.add('hidden');detailContainer.classList.remove('hidden');
-      const niches = (typeof inf.niche === 'string') ? inf.niche.split('|').map(s => s.trim()) : [];
+      const niches = (typeof inf.niche === 'string') ? inf.niche.split('|').map(s => s.trim()).filter(Boolean) : [];
       const demoPlatforms=[{name:'Instagram',value:40},{name:'YouTube',value:30},{name:'TikTok',value:20},{name:'Facebook',value:10}];
       const demoAges=[{range:'<12',value:3},{range:'13-17',value:12},{range:'18-24',value:25},{range:'25-34',value:30},{range:'35-44',value:15},{range:'45-54',value:10},{range:'55-64',value:3},{range:'>65',value:2}];
       const demoGender=[{name:'Hombres',value:55},{name:'Mujeres',value:45}];
-      detailContainer.innerHTML=`<div class="detail-header"><img src="https://placehold.co/120x120?text=${encodeURIComponent(inf.name.charAt(0))}" class="avatar" alt="${inf.name}"><div><h2>${inf.name}</h2><p class="text-secondary">${inf.platform} • Seguidores: ${inf.followers.toLocaleString()}</p><p>❤️ Likes: ${inf.likesAvg.toLocaleString()} • 💬 Comentarios: ${inf.commentsAvg.toLocaleString()}</p><p class="text-impact">📊 Impacto: ${inf.impact}%</p></div></div><h4 style="margin-top:15px;font-size:.9rem">Nichos</h4><div class="tags">${niches.map(t=>`<span class="tag">${t}</span>`).join('')}</div><button class="back-btn" id="back-btn">← Volver</button><div class="charts-row"><div class="chart-container"><div class="chart-title">Distribución por plataforma</div><canvas id="platform-chart"></canvas></div><div class="chart-container"><div class="chart-title">Distribución por edad</div><canvas id="age-chart"></canvas></div></div><div class="chart-container" style="margin-top:20px"><div class="chart-title">Distribución por género</div><canvas id="gender-chart"></canvas></div>`;
+      detailContainer.innerHTML=`<div class="detail-header"><img src="https://ui-avatars.com/api/?name=${encodeURIComponent(inf.name)}&background=ef4444&color=fff&size=120" class="avatar" alt="${inf.name}"><div><h2>${inf.name}</h2><p class="text-secondary">${inf.platform} • Seguidores: ${(inf.followers || 0).toLocaleString()}</p><p>❤️ Likes: ${(inf.likesAvg || 0).toLocaleString()} • 💬 Comentarios: ${(inf.commentsAvg || 0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${inf.impact}%</p></div></div><h4 style="margin-top:15px;font-size:.9rem">Nichos</h4><div class="tags">${niches.map(t=>`<span class="tag">${t}</span>`).join('')}</div><button class="back-btn" id="back-btn">← Volver</button><div class="charts-row"><div class="chart-container"><div class="chart-title">Distribución por plataforma</div><canvas id="platform-chart"></canvas></div><div class="chart-container"><div class="chart-title">Distribución por edad</div><canvas id="age-chart"></canvas></div></div><div class="chart-container" style="margin-top:20px"><div class="chart-title">Distribución por género</div><canvas id="gender-chart"></canvas></div>`;
       document.getElementById('back-btn').onclick=()=>{detailContainer.classList.add('hidden');resultsContainer.classList.remove('hidden');};
       createBarChart('platform-chart',demoPlatforms.map(d=>d.name),demoPlatforms.map(d=>d.value),'rgba(239,68,68,0.8)','rgba(239,68,68,1)');
       createBarChart('age-chart',demoAges.map(d=>d.range),demoAges.map(d=>d.value),'rgba(59,130,246,0.8)','rgba(59,130,246,1)');
