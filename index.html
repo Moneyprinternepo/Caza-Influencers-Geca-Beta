@@ -34,48 +34,52 @@
     .back-btn{color:var(--primary);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:10px}
     .tags{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
     .tag{background:var(--bg-input);padding:3px 10px;border-radius:999px;font-size:.8rem}
-    .charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:20px}
-    .chart-container{background:#2a2a2a;border-radius:10px;padding:15px;box-shadow:0 4px 6px rgba(0,0,0,.1)}
-    .chart-title{font-size:.9rem;margin-bottom:10px;font-weight:bold}
     .hidden{display:none}
     .loader{border:5px solid var(--bg-input);border-top:5px solid var(--primary);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:20px auto}
     @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-    @media(max-width:768px){.filter-bar,.results-grid,.charts-row{grid-template-columns:1fr}.detail-header{flex-direction:column;text-align:center}}
     
-    /* --- NUEVOS ESTILOS PARA CAMPAÑAS --- */
+    /* --- ESTILOS CAMPAÑAS (Podio) --- */
     .campaign-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-    .podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px; min-height: 280px;}
-    .podium-item{background:var(--bg-card);border-radius:10px 10px 0 0;padding:20px;text-align:center;transition:all .3s ease;cursor:pointer;position:relative;width:28%;}
-    .podium-item:hover{transform:translateY(-10px);box-shadow:0 10px 20px rgba(0,0,0,0.3);}
-    .podium-item--1{order:2;height:240px;border-bottom:5px solid var(--podium-gold);transform:scale(1.1);}
-    .podium-item--2{order:1;height:200px;border-bottom:5px solid var(--podium-silver);}
-    .podium-item--3{order:3;height:180px;border-bottom:5px solid var(--podium-bronze);}
-    .podium-rank{font-size:3rem;font-weight:bold;line-height:1;margin-bottom:10px;}
-    .podium-item--1 .podium-rank{color:var(--podium-gold);}
-    .podium-item--2 .podium-rank{color:var(--podium-silver);}
-    .podium-item--3 .podium-rank{color:var(--podium-bronze);}
-    .podium-name{font-size:1.1rem;font-weight:bold;margin-bottom:8px;}
-    .podium-metric{font-size:1rem;color:var(--success);font-weight:bold;}
-    .campaign-list-container h3{text-align:center;color:var(--text-secondary);margin:40px 0 20px;text-transform:uppercase;letter-spacing:2px;}
-    .campaign-list-item{display:flex;align-items:center;background:var(--bg-card);padding:15px;border-radius:5px;margin-bottom:10px;border-left:4px solid var(--border);cursor:pointer;transition:all .2s;}
-    .campaign-list-item:hover{background:#2a2a2a;border-left-color:var(--primary);}
-    .campaign-list-item .rank{font-size:1.2rem;font-weight:bold;color:var(--text-secondary);margin-right:20px;min-width:30px;text-align:right;}
-    .campaign-list-item .info{flex-grow:1;}
-    .campaign-list-item .info h4{font-size:1.1rem;margin:0;}
-    .campaign-list-item .metric{font-size:1.1rem;font-weight:bold;color:var(--success);min-width:120px;text-align:right;}
-    .campaign-type-icon{margin-right:15px;font-size:1.5rem;color:var(--primary);}
+    .podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px;min-height:280px}
+    .podium-item{border-radius:10px 10px 0 0;padding:20px;text-align:center;transition:all .3s ease;cursor:pointer;position:relative;width:28%;background-size:cover;background-position:center}
+    .podium-item::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(31,31,31,0.7);border-radius:inherit;transition:background .3s}
+    .podium-item:hover::before{background:rgba(31,31,31,0.5)}
+    .podium-item > *{position:relative;z-index:2;text-shadow:1px 1px 4px #000}
+    .podium-item:hover{transform:translateY(-10px);box-shadow:0 10px 20px rgba(0,0,0,0.3)}
+    .podium-item--1{order:2;height:240px;border-bottom:5px solid var(--podium-gold);transform:scale(1.1)}
+    .podium-item--2{order:1;height:200px;border-bottom:5px solid var(--podium-silver)}
+    .podium-item--3{order:3;height:180px;border-bottom:5px solid var(--podium-bronze)}
+    .podium-rank{font-size:3rem;font-weight:bold;line-height:1;margin-bottom:10px}
+    .podium-item--1 .podium-rank{color:var(--podium-gold)}
+    .podium-item--2 .podium-rank{color:var(--podium-silver)}
+    .podium-item--3 .podium-rank{color:var(--podium-bronze)}
+    .podium-name{font-size:1.1rem;font-weight:bold;margin-bottom:8px}
+    .podium-metric{font-size:1rem;color:var(--success);font-weight:bold}
+    .campaign-list-container h3{text-align:center;color:var(--text-secondary);margin:40px 0 20px;text-transform:uppercase;letter-spacing:2px}
+    .campaign-list-item{display:flex;align-items:center;background:var(--bg-card);padding:15px;border-radius:5px;margin-bottom:10px;cursor:pointer;transition:all .2s;border-left:4px solid transparent}
+    .campaign-list-item:hover{background:#2a2a2a;border-left-color:var(--primary)}
+    .campaign-list-thumbnail{width:50px;height:50px;border-radius:50%;object-fit:cover;margin-right:15px;border:2px solid var(--border)}
+    .campaign-list-item .rank{font-size:1.2rem;font-weight:bold;color:var(--text-secondary);margin-right:20px;min-width:30px;text-align:right}
+    .campaign-list-item .info{flex-grow:1}
+    .campaign-list-item .info h4{font-size:1.1rem;margin:0}
+    .campaign-list-item .metric{font-size:1.1rem;font-weight:bold;color:var(--success);min-width:120px;text-align:right}
 
-    /* --- NUEVOS ESTILOS DETALLE DE CAMPAÑA --- */
-    .campaign-detail-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:20px;margin-top:30px;}
-    .kpi-card{background:#2a2a2a;border-radius:10px;padding:20px;text-align:center;border:1px solid var(--border);}
-    .kpi-card-title{font-size:0.9rem;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;}
-    .kpi-card-value{font-size:2.5rem;font-weight:bold;line-height:1;}
-    .kpi-card-value.small{font-size: 1.8rem;}
-    .kpi-card-hero{grid-column:1 / -1;background:linear-gradient(45deg, var(--primary-dark), #2a2a2a);border-color:var(--primary);}
-    .kpi-card-hero .kpi-card-value{font-size:5rem;}
-    .gauge-container{width:150px;height:150px;margin:10px auto;position:relative;display:grid;place-items:center;border-radius:50%;background: conic-gradient(var(--gauge-color, var(--primary)) calc(var(--p, 0) * 1%), var(--bg-input) 0);}
-    .gauge-container::before{content:"";position:absolute;width:80%;height:80%;background:var(--bg-card);border-radius:50%;}
-    .gauge-value{position:relative;font-size:2rem;font-weight:bold;}
+    /* --- NUEVOS ESTILOS DETALLE DE CAMPAÑA ANALÍTICO --- */
+    .campaign-detail-container{padding:20px; background: var(--bg-dark);}
+    .campaign-detail-header h2{color:var(--primary)}
+    .campaign-detail-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-top:20px}
+    .charts-section{display:flex;flex-direction:column;gap:20px}
+    .chart-wrapper{background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border)}
+    .chart-wrapper h3{margin-bottom:15px;color:var(--text-secondary)}
+    .kpis-section{display:flex;flex-direction:column;gap:20px}
+    .kpi-card-small{background:var(--bg-card);padding:15px;border-radius:10px;border:1px solid var(--border)}
+    .kpi-card-small .kpi-title{font-size:0.9rem;color:var(--text-secondary);margin-bottom:5px}
+    .kpi-card-small .kpi-value{font-size:2.2rem;font-weight:bold;line-height:1}
+    .kpi-card-small .kpi-subtitle{font-size:0.8rem;color:#888}
+    .kpi-card-small.highlight{border-color:var(--success);background:linear-gradient(45deg, var(--bg-card), #1a4d2e)}
+    .kpi-card-small.highlight .kpi-value{color:var(--success)}
+
+    @media(max-width:900px){.campaign-detail-main-grid{grid-template-columns:1fr}.charts-section,.kpis-section{order:1}}
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.3.0/chart.umd.min.js"></script>
@@ -89,282 +93,184 @@
         <img src="https://www.cinesfilmax.com/assets/cinesfilmax-logo.svg" alt="Logo Filmax"/>
       </div>
     </header>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="explorar">Explorar</button>
-      <button class="tab" data-tab="campanas">Tus campañas</button>
-    </div>
-
-    <!-- VISTA EXPLORAR (Sin cambios) -->
+    <div class="tabs"><button class="tab active" data-tab="explorar">Explorar</button><button class="tab" data-tab="campanas">Tus campañas</button></div>
     <div id="explore-view">
         <div class="filter-bar">
             <select id="platform-filter"><option value="Todos">Todas las plataformas</option><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option><option value="TikTok">TikTok</option><option value="Reddit">Reddit</option></select>
             <select id="followers-filter"><option value="Todos">Todos los seguidores</option><option value="<100K">Menos de 100K</option><option value="100K-500K">Entre 100K y 500K</option><option value=">500K">Más de 500K</option></select>
             <select id="tag1-filter"><option value="Todos">Todos los nichos</option></select>
             <select id="tag2-filter"><option value="Todos">Todos los nichos (2)</option></select>
-            <input type="text" id="search-input" placeholder="Buscar..." />
-            <button class="btn" id="search-btn" disabled>🔍 Buscar</button>
+            <input type="text" id="search-input" placeholder="Buscar..." /><button class="btn" id="search-btn" disabled>🔍 Buscar</button>
         </div>
         <div id="results-container" class="results-grid hidden"></div>
         <div id="detail-container" class="detail-view hidden"></div>
     </div>
-    
-    <!-- VISTA CAMPAÑAS (Rediseñada) -->
     <div id="campaign-view" class="hidden">
         <div id="campaign-overview-view">
             <div class="campaign-header">
-                <div>
-                    <h2 style="color:var(--primary);margin-bottom:5px">Ranking de Campañas</h2>
-                    <p class="text-secondary">Clasificación de todas tus campañas activas e históricas.</p>
-                </div>
+                <div><h2 style="color:var(--primary);margin-bottom:5px">Ranking de Campañas</h2><p class="text-secondary">Clasificación de todas tus campañas activas e históricas.</p></div>
                 <button class="btn btn-secondary" id="reload-data-btn">🔄 Recargar Datos</button>
             </div>
-             <div class="filter-bar" style="grid-template-columns: 1fr 2fr; margin-bottom: 30px;">
+            <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:30px">
                 <label for="campaign-sort-filter" class="text-secondary" style="align-self:center">Ordenar por:</label>
                 <select id="campaign-sort-filter">
-                    <option value="performance">Ratio de Rendimiento</option>
-                    <option value="impressions">Impresiones (Más a Menos)</option>
-                    <option value="budget">Presupuesto (Más a Menos)</option>
-                    <option value="cpc">Coste por Clic (Menos a Más)</option>
+                    <option value="performance">Ratio de Rendimiento</option><option value="impressions">Impresiones (Más a Menos)</option><option value="budget">Presupuesto (Más a Menos)</option><option value="cpc">Coste por Clic (Menos a Más)</option>
                 </select>
             </div>
             <div id="campaign-overview-content"></div>
         </div>
         <div id="campaign-detail-view" class="hidden"></div>
     </div>
-    
     <div id="loader" class="loader"></div>
   </div>
-
   <script>
-    /* -------------------------------------------------------------
-       ESTRUCTURA GLOBAL Y ESTADO (Sin cambios)
-    -------------------------------------------------------------*/
     let influencersData = [], campaignsData = [];
     const mainContent = document.getElementById('mainContent'), tabs = document.querySelectorAll('.tab'), exploreView = document.getElementById('explore-view'), campaignView = document.getElementById('campaign-view'), loader = document.getElementById('loader'), searchBtn = document.getElementById('search-btn'), resultsContainer = document.getElementById('results-container'), detailContainer = document.getElementById('detail-container'), campaignOverviewView = document.getElementById('campaign-overview-view'), campaignDetailView = document.getElementById('campaign-detail-view'), campaignOverviewContent = document.getElementById('campaign-overview-content'), campaignSortFilter = document.getElementById('campaign-sort-filter'), reloadDataBtn = document.getElementById('reload-data-btn');
+    let charts = {}; // Para destruir gráficos y evitar problemas
 
-    /* -------------------------------------------------------------
-       LÓGICA DE CARGA DE DATOS (Sin cambios, ya adaptado)
-    -------------------------------------------------------------*/
     function loadData() {
-        loader.classList.remove('hidden');
-        mainContent.classList.add('hidden');
+        loader.classList.remove('hidden'); mainContent.classList.add('hidden');
         const noCache = `?t=${new Date().getTime()}`;
         const influencersPromise = new Promise((resolve, reject) => {
-            Papa.parse(`data/influencers.csv${noCache}`, {
-                download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",",
-                complete: ({ data }) => {
-                    influencersData = data.filter(r => r.id != null && r.id !== "").map(r => {
-                        let p = r.platform;
-                        if (p && typeof p === 'string') { p = p.toLowerCase() === 'youtube' ? 'YouTube' : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase(); }
-                        return { ...r, platform: p };
-                    });
-                    resolve();
-                }, error: err => reject(new Error(`influencers.csv: ${err.message}`))
-            });
+            Papa.parse(`data/influencers.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => { influencersData = data.filter(r => r.id != null && r.id !== "").map(r => ({ ...r, platform: (r.platform && typeof r.platform === 'string') ? (r.platform.toLowerCase() === 'youtube' ? 'YouTube' : r.platform.charAt(0).toUpperCase() + r.platform.slice(1).toLowerCase()) : r.platform })); resolve(); }, error: err => reject(new Error(`influencers.csv: ${err.message}`)) });
         });
         const campaignsPromise = new Promise((resolve, reject) => {
-             Papa.parse(`data/campaigns.csv${noCache}`, {
-                download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",",
-                complete: ({ data }) => {
+             Papa.parse(`data/campaigns.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => {
                     campaignsData = data.filter(r => r.Id != null && r.Id !== "").map(c => {
-                        const budget = c.Spent || 0, impressions = c.Views || 0, reach = c.Reach || 0, clicks = c['Link Clicks'] || 0, type = c.Type || 'Unknown', interactions = c.Interactions || 0, retention = c['Retention Rate'] || 0, clickRate = c['Click Rate'] || 0;
-                        return { id: c.Id, name: c.Name, type, budget, impressions, reach, clicks, interactions, retention, clickRate, status: c.Status || 'Activa', description: c.Description || `Campaña de ${c.Content} para ${c.Name}. Objetivo: ${c.Goal}.`, cpc: clicks > 0 ? (budget / clicks) : 0, cpm: impressions > 0 ? (budget / impressions) * 1000 : 0, performance: (type === 'Meta' && budget > 0 ? (reach / budget) : (impressions / budget)) || 0 };
+                        const budget=c.Spent||0, impressions=c.Views||0, reach=c.Reach||0, clicks=c['Link Clicks']||0, type=c.Type||'Unknown', interactions=c.Interactions||0, retention=c['Retention Rate']||0, clickRate=c['Click Rate']||0, ticketsSold=c['Tickets Sold']||0, views3s=c['3s Views']||0;
+                        const imageFile = c.imageFile || null;
+                        const imageUrl = imageFile ? `images/${imageFile}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.Name)}&background=1f1f1f&color=fff&size=128`;
+                        return { id:c.Id, name:c.Name, type, budget, impressions, reach, clicks, interactions, retention, clickRate, ticketsSold, views3s, imageUrl, status:c.Status||'Activa', description:c.Description||`Campaña de ${c.Content} para ${c.Name}. Objetivo: ${c.Goal}.`, cpc:clicks>0?(budget/clicks):0, cpm:impressions>0?(budget/impressions)*1000:0, performance:(type==='Meta'&&budget>0?(reach/budget):(impressions/budget))||0 };
                     });
                     resolve();
-                }, error: err => reject(new Error(`campaigns.csv: ${err.message}`))
-            });
+                }, error: err => reject(new Error(`campaigns.csv: ${err.message}`)) });
         });
-        Promise.all([influencersPromise, campaignsPromise]).then(() => {
-            console.log("Todos los datos cargados.");
-            initApp();
-        }).catch(error => {
-            loader.classList.add('hidden');
-            mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos CSV están en la carpeta /data, guardados como UTF-8 y con el delimitador correcto (,).</p>`;
-            mainContent.classList.remove('hidden');
-        });
+        Promise.all([influencersPromise, campaignsPromise]).then(() => { console.log("Todos los datos cargados."); initApp(); }).catch(error => { loader.classList.add('hidden'); mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos CSV están en la carpeta /data, guardados como UTF-8 y con el delimitador correcto (,).</p>`; mainContent.classList.remove('hidden'); });
     }
 
-    function initApp() {
-        loader.classList.add('hidden');
-        mainContent.classList.remove('hidden');
-        searchBtn.removeAttribute('disabled');
-        handleTabClick({ target: document.querySelector('.tab.active') });
+    function initApp() { loader.classList.add('hidden'); mainContent.classList.remove('hidden'); searchBtn.removeAttribute('disabled'); handleTabClick({ target: document.querySelector('.tab.active') }); }
+    function handleTabClick(e) { tabs.forEach(t => t.classList.remove('active')); e.target.classList.add('active'); exploreView.classList.add('hidden'); campaignView.classList.add('hidden'); if (e.target.dataset.tab === 'explorar') { exploreView.classList.remove('hidden'); if (influencersData.length > 0) { populateTagFilters(); filterInfluencersData(); } } else { campaignView.classList.remove('hidden'); showCampaignView('overview'); } }
+    
+    function showCampaignView(viewName, params = {}) { 
+        campaignOverviewView.classList.add('hidden'); 
+        campaignDetailView.classList.add('hidden'); 
+        if (viewName === 'overview') { renderCampaignOverview(); campaignOverviewView.classList.remove('hidden'); } 
+        else { renderCampaignDetail(params.id); campaignDetailView.classList.remove('hidden'); } 
     }
 
-    /* -------------------------------------------------------------
-       LÓGICA DE PESTAÑAS Y VISTAS (Ligeramente modificada)
-    -------------------------------------------------------------*/
-    function handleTabClick(e) {
-        tabs.forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        exploreView.classList.add('hidden');
-        campaignView.classList.add('hidden');
-        if (e.target.dataset.tab === 'explorar') {
-            exploreView.classList.remove('hidden');
-            if (influencersData.length > 0) {
-                populateTagFilters();
-                filterInfluencersData();
-            }
-        } else {
-            campaignView.classList.remove('hidden');
-            showCampaignView('overview');
-        }
-    }
-    
-    function showCampaignView(viewName, params = {}) {
-        campaignOverviewView.classList.add('hidden');
-        campaignDetailView.classList.add('hidden');
-        if (viewName === 'overview') {
-            renderCampaignOverview();
-            campaignOverviewView.classList.remove('hidden');
-        } else {
-            renderCampaignDetail(params.id);
-            campaignDetailView.classList.remove('hidden');
-        }
-    }
-    
-    /* -------------------------------------------------------------
-       VISTA CAMPAÑAS (Totalmente rediseñada)
-    -------------------------------------------------------------*/
     function renderCampaignOverview() {
-        if (campaignsData.length === 0) {
-            campaignOverviewContent.innerHTML = '<p>No se encontraron datos de campañas.</p>';
-            return;
-        }
+        if (campaignsData.length === 0) { campaignOverviewContent.innerHTML = '<p>No se encontraron datos de campañas.</p>'; return; }
         const sortKey = campaignSortFilter.value;
         let sortedData = [...campaignsData].sort((a,b) => (sortKey === 'cpc' ? (a[sortKey] || Infinity) - (b[sortKey] || Infinity) : (b[sortKey] || 0) - (a[sortKey] || 0)));
-
-        const podium = sortedData.slice(0, 3);
-        const rest = sortedData.slice(3);
-        
-        const getMetricDisplay = (c, key) => {
-            const val = c[key] || 0;
-            if (key === 'budget') return val.toLocaleString('es-ES', {style:'currency', currency:'EUR'});
-            if (key === 'cpc') return val.toFixed(2) + '€';
-            if (key === 'performance') return val.toFixed(2) + ' pts';
-            return val.toLocaleString();
-        };
-
-        const podiumHTML = `
-            <div class="podium-container">
-                ${podium.map((c, i) => `
-                    <div class="podium-item podium-item--${i+1}" data-id="${c.id}">
-                        <div class="podium-rank">${i+1}</div>
-                        <div class="podium-name">${c.name}</div>
-                        <div class="podium-metric">${getMetricDisplay(c, sortKey)}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        
-        const listHTML = rest.length > 0 ? `
-            <div class="campaign-list-container">
-                <h3>Resto de campañas</h3>
-                ${rest.map((c, i) => `
-                    <div class="campaign-list-item" data-id="${c.id}">
-                        <span class="rank">${i+4}</span>
-                        <span class="campaign-type-icon">${c.type === 'Meta' ? '📊' : '👤'}</span>
-                        <div class="info">
-                            <h4>${c.name}</h4>
-                            <p class="text-secondary">${c.type}</p>
-                        </div>
-                        <span class="metric">${getMetricDisplay(c, sortKey)}</span>
-                    </div>
-                `).join('')}
-            </div>
-        ` : '';
-
+        const podium = sortedData.slice(0, 3), rest = sortedData.slice(3);
+        const getMetricDisplay = (c, key) => { const val = c[key] || 0; if (key === 'budget') return val.toLocaleString('es-ES', {style:'currency', currency:'EUR'}); if (key === 'cpc') return val.toFixed(2) + '€'; if (key === 'performance') return val.toFixed(2) + ' pts'; return val.toLocaleString(); };
+        const podiumHTML = `<div class="podium-container">${podium.map((c, i) => `<div class="podium-item podium-item--${i+1}" data-id="${c.id}" style="background-image: url('${c.imageUrl}');"><div class="podium-rank">${i+1}</div><div class="podium-name">${c.name}</div><div class="podium-metric">${getMetricDisplay(c, sortKey)}</div></div>`).join('')}</div>`;
+        const listHTML = rest.length > 0 ? `<div class="campaign-list-container"><h3>Resto de campañas</h3>${rest.map((c, i) => `<div class="campaign-list-item" data-id="${c.id}"><img src="${c.imageUrl}" alt="${c.name}" class="campaign-list-thumbnail"><div class="info"><h4>${c.name}</h4><p class="text-secondary">${c.type}</p></div><span class="metric">${getMetricDisplay(c, sortKey)}</span></div>`).join('')}</div>` : '';
         campaignOverviewContent.innerHTML = podiumHTML + listHTML;
-        document.querySelectorAll('.podium-item, .campaign-list-item').forEach(el => {
-            el.onclick = () => showCampaignView('detail', { id: el.dataset.id });
-        });
+        document.querySelectorAll('.podium-item, .campaign-list-item').forEach(el => { el.onclick = () => showCampaignView('detail', { id: el.dataset.id }); });
     }
     
+    function destroyCharts() { for (const chartId in charts) { if (charts[chartId]) { charts[chartId].destroy(); delete charts[chartId]; } } }
+
     function renderCampaignDetail(id) {
+        destroyCharts(); // Destruir gráficos anteriores
         const c = campaignsData.find(c => c.id == id);
-        if (!c) {
-            campaignDetailView.innerHTML = `<p>Campaña no encontrada.</p><button class="btn" onclick="showCampaignView('overview')">Volver</button>`;
-            return;
-        }
-
-        const getGaugeColor = (value) => {
-            if (value >= 75) return 'var(--success)';
-            if (value >= 40) return 'var(--warning)';
-            return 'var(--primary)';
-        }
-
+        if (!c) { campaignDetailView.innerHTML = `<p>Campaña no encontrada.</p>`; return; }
+        
         campaignDetailView.innerHTML = `
-            <div class="campaign-header">
-                <div>
-                    <h2 style="color:var(--primary);margin-bottom:5px">${c.name}</h2>
-                    <p class="text-secondary">${c.type} • ${c.description}</p>
+            <div class="campaign-detail-container">
+                <div class="campaign-header">
+                    <div>
+                        <h2 class="campaign-detail-header-title">${c.name}</h2>
+                        <p class="text-secondary">${c.description}</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="showCampaignView('overview')">← Volver al Ranking</button>
                 </div>
-                <button class="btn btn-secondary" onclick="showCampaignView('overview')">← Volver al Ranking</button>
-            </div>
-            <div class="campaign-detail-grid">
-                <div class="kpi-card kpi-card-hero">
-                    <div class="kpi-card-title">${c.type === 'Meta' ? 'Alcance Total' : 'Impresiones Totales'}</div>
-                    <div class="kpi-card-value">${(c.type === 'Meta' ? c.reach : c.impressions).toLocaleString()}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-card-title">Ratio de Rendimiento</div>
-                    <div class="kpi-card-value">${c.performance.toFixed(2)}</div>
-                    <p class="text-secondary">Puntos por € gastado</p>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-card-title">Coste Por Clic (CPC)</div>
-                    <div class="kpi-card-value small">${c.cpc.toFixed(2)}€</div>
-                     <p class="text-secondary">Clics: ${c.clicks.toLocaleString()}</p>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-card-title">Coste Por Mil (CPM)</div>
-                    <div class="kpi-card-value small">${c.cpm.toFixed(2)}€</div>
-                    <p class="text-secondary">Presupuesto: ${c.budget.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</p>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="kpi-card-title">Ratio de Retención (3s)</div>
-                    <div class="gauge-container" style="--p: ${c.retention.toFixed(0)}; --gauge-color: ${getGaugeColor(c.retention)};">
-                        <div class="gauge-value">${c.retention.toFixed(0)}%</div>
+                <div class="campaign-detail-main-grid">
+                    <div class="charts-section">
+                        <div class="chart-wrapper">
+                            <h3>Visión General de la Campaña</h3>
+                            <canvas id="campaign-overview-chart"></canvas>
+                        </div>
+                        <div class="chart-wrapper">
+                            <h3>Embudo de Engagement</h3>
+                            <canvas id="engagement-funnel-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="kpis-section">
+                        <div class="kpi-card-small highlight">
+                            <div class="kpi-title">Tickets Vendidos</div>
+                            <div class="kpi-value">${c.ticketsSold.toLocaleString()}</div>
+                            <div class="kpi-subtitle">Resultado Principal</div>
+                        </div>
+                        <div class="kpi-card-small">
+                            <div class="kpi-title">Coste por Clic (CPC)</div>
+                            <div class="kpi-value">${c.cpc.toFixed(2)}€</div>
+                            <div class="kpi-subtitle">${c.clicks.toLocaleString()} clics totales</div>
+                        </div>
+                        <div class="kpi-card-small">
+                            <div class="kpi-title">Coste por Mil (CPM)</div>
+                            <div class="kpi-value">${c.cpm.toFixed(2)}€</div>
+                            <div class="kpi-subtitle">${c.impressions.toLocaleString()} impresiones</div>
+                        </div>
+                        <div class="kpi-card-small">
+                            <div class="kpi-title">Click-Through Rate (CTR)</div>
+                            <div class="kpi-value">${c.clickRate.toFixed(2)}%</div>
+                            <div class="kpi-subtitle">Eficiencia del anuncio</div>
+                        </div>
+                        <div class="kpi-card-small">
+                            <div class="kpi-title">Tasa de Retención (3s)</div>
+                            <div class="kpi-value">${c.retention.toFixed(2)}%</div>
+                            <div class="kpi-subtitle">Interés inicial</div>
+                        </div>
                     </div>
                 </div>
-                 <div class="kpi-card">
-                    <div class="kpi-card-title">Click-Through Rate (CTR)</div>
-                     <div class="gauge-container" style="--p: ${c.clickRate.toFixed(0)}; --gauge-color: ${getGaugeColor(c.clickRate * 20)};">
-                        <div class="gauge-value">${c.clickRate.toFixed(1)}%</div>
-                    </div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-card-title">Interacciones</div>
-                    <div class="kpi-card-value">${c.interactions.toLocaleString()}</div>
-                    <p class="text-secondary">Total de engagement</p>
-                </div>
-            </div>
-        `;
+            </div>`;
+        
+        // Crear nuevos gráficos
+        createCampaignOverviewChart('campaign-overview-chart', c);
+        createEngagementFunnelChart('engagement-funnel-chart', c);
+    }
+    
+    function createCampaignOverviewChart(canvasId, data) {
+        const ctx = document.getElementById(canvasId);
+        charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Presupuesto (€)', 'Alcance', 'Clics'],
+                datasets: [{
+                    label: 'Valor',
+                    data: [data.budget, data.reach, data.clicks],
+                    backgroundColor: ['#7f1d1d', '#ef4444', '#f59e0b'],
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#aaa' }, grid: { color: '#444' } }, x: { ticks: { color: '#aaa' }, grid: { color: '#444' } } } }
+        });
     }
 
-    /* -------------------------------------------------------------
-       LÓGICA EXPLORAR (Sin cambios)
-    -------------------------------------------------------------*/
-    let filteredInfluencers = [];
-    function populateTagFilters(){const t1=document.getElementById('tag1-filter'),t2=document.getElementById('tag2-filter');t1.length=1;t2.length=1;const n=influencersData.flatMap(i=>(!i.niche||typeof i.niche!=='string')?[]:i.niche.split('|').map(s=>s.trim()));[...new Set(n.filter(Boolean))].sort().forEach(tag=>{t1.appendChild(new Option(tag,tag));t2.appendChild(new Option(tag,tag))})}
+    function createEngagementFunnelChart(canvasId, data) {
+        const ctx = document.getElementById(canvasId);
+        charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Impresiones', 'Vistas (3s)', 'Clics', 'Interacciones'],
+                datasets: [{
+                    label: 'Usuarios',
+                    data: [data.impressions, data.views3s, data.clicks, data.interactions],
+                    backgroundColor: ['#4c1d95', '#6d28d9', '#8b5cf6', '#a78bfa'],
+                }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#aaa' }, grid: { color: '#444' } }, x: { ticks: { color: '#aaa' }, grid: { color: '#444' } } } }
+        });
+    }
+
+    // --- Lógica de Explorar (Minimizada, sin cambios) ---
+    let filteredInfluencers = []; function populateTagFilters(){const t1=document.getElementById('tag1-filter'),t2=document.getElementById('tag2-filter');t1.length=1;t2.length=1;const n=influencersData.flatMap(i=>(!i.niche||typeof i.niche!=='string')?[]:i.niche.split('|').map(s=>s.trim()));[...new Set(n.filter(Boolean))].sort().forEach(tag=>{t1.appendChild(new Option(tag,tag));t2.appendChild(new Option(tag,tag))})}
     function filterInfluencersData(){loader.classList.remove('hidden');resultsContainer.classList.add('hidden');setTimeout(()=>{const p=document.getElementById('platform-filter').value,f=document.getElementById('followers-filter').value,t1=document.getElementById('tag1-filter').value,t2=document.getElementById('tag2-filter').value,term=document.getElementById('search-input').value.toLowerCase();filteredInfluencers=influencersData.filter(i=>{const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()):[];if(p!=='Todos'&&i.platform!==p)return false;if(f==='<100K'&&i.followers>=1e5)return false;if(f==='100K-500K'&&(i.followers<1e5||i.followers>5e5))return false;if(f==='>500K'&&i.followers<=5e5)return false;if(t1!=='Todos'&&!n.includes(t1))return false;if(t2!=='Todos'&&!n.includes(t2))return false;if(term&&!i.name.toLowerCase().includes(term)&&!n.some(s=>s.toLowerCase().includes(term)))return false;return true});displayInfluencerResults();loader.classList.add('hidden');resultsContainer.classList.remove('hidden')},300)}
     function displayInfluencerResults(){resultsContainer.innerHTML='';if(filteredInfluencers.length===0){resultsContainer.innerHTML='<p>No se encontraron influencers.</p>';return}const calcImpact=i=>((i.likesAvg||0)+(i.commentsAvg||0)*1.5)/(i.followers||1);const impacts=filteredInfluencers.map(calcImpact);const maxImpact=Math.max(...impacts)||1;filteredInfluencers.forEach(i=>{const rawImpact=calcImpact(i);const impact=((rawImpact/maxImpact)*100).toFixed(2);i.impact=impact;const card=document.createElement('div');card.className='result-card';card.innerHTML=`<h3>${i.name}</h3><p class="text-secondary">${i.platform}</p><p>👥 Seguidores: ${(i.followers||0).toLocaleString()}</p><p>❤️ Likes: ${(i.likesAvg||0).toLocaleString()}</p><p>💬 Comentarios: ${(i.commentsAvg||0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${impact}%</p>`;card.addEventListener('click',()=>{displayInfluencerDetail(i)});resultsContainer.appendChild(card)})}
-    function displayInfluencerDetail(i){resultsContainer.classList.add('hidden');detailContainer.classList.remove('hidden');const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()).filter(Boolean):[];const p=[{name:'Instagram',value:40},{name:'YouTube',value:30},{name:'TikTok',value:20},{name:'Facebook',value:10}];const a=[{range:'<12',value:3},{range:'13-17',value:12},{range:'18-24',value:25},{range:'25-34',value:30},{range:'35-44',value:15},{range:'45-54',value:10},{range:'55-64',value:3},{range:'>65',value:2}];const g=[{name:'Hombres',value:55},{name:'Mujeres',value:45}];detailContainer.innerHTML=`<div class="detail-header"><img src="https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=ef4444&color=fff&size=120" class="avatar" alt="${i.name}"><div><h2>${i.name}</h2><p class="text-secondary">${i.platform} • Seguidores: ${(i.followers||0).toLocaleString()}</p><p>❤️ Likes: ${(i.likesAvg||0).toLocaleString()} • 💬 Comentarios: ${(i.commentsAvg||0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${i.impact}%</p></div></div><h4 style="margin-top:15px;font-size:.9rem">Nichos</h4><div class="tags">${n.map(t=>`<span class="tag">${t}</span>`).join('')}</div><button class="back-btn" id="back-btn">← Volver</button><div class="charts-row"><div class="chart-container"><div class="chart-title">Distribución por plataforma</div><canvas id="platform-chart"></canvas></div><div class="chart-container"><div class="chart-title">Distribución por edad</div><canvas id="age-chart"></canvas></div></div><div class="chart-container" style="margin-top:20px"><div class="chart-title">Distribución por género</div><canvas id="gender-chart"></canvas></div>`;document.getElementById('back-btn').onclick=()=>{detailContainer.classList.add('hidden');resultsContainer.classList.remove('hidden')};createBarChart('platform-chart',p.map(d=>d.name),p.map(d=>d.value),'rgba(239,68,68,0.8)','rgba(239,68,68,1)');createBarChart('age-chart',a.map(d=>d.range),a.map(d=>d.value),'rgba(59,130,246,0.8)','rgba(59,130,246,1)');createPieChart('gender-chart',g.map(d=>d.name),g.map(d=>d.value),['rgba(239,68,68,0.8)','rgba(59,130,246,0.8)'],['rgba(239,68,68,1)','rgba(59,130,246,1)'])}
-    function createBarChart(id,l,d,bg,b){new Chart(document.getElementById(id),{type:'bar',data:{labels:l,datasets:[{data:d,label:'Distribución',backgroundColor:bg,borderColor:b,borderWidth:1}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{color:'#aaa'},grid:{color:'#444'}},x:{ticks:{color:'#aaa'},grid:{color:'#444'}}},plugins:{legend:{display:false}}}})}
-    function createPieChart(id,l,d,bg,b){new Chart(document.getElementById(id),{type:'pie',data:{labels:l,datasets:[{data:d,backgroundColor:bg,borderColor:b,borderWidth:1}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#aaa'}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}%`}}}}})}
-
-    /* -------------------------------------------------------------
-       INICIALIZACIÓN Y EVENTOS
-    -------------------------------------------------------------*/
-    document.addEventListener('DOMContentLoaded', () => {
-        tabs.forEach(t => t.addEventListener('click', handleTabClick));
-        searchBtn.onclick = filterInfluencersData;
-        campaignSortFilter.onchange = renderCampaignOverview;
-        reloadDataBtn.onclick = loadData;
-        loadData();
-    });
+    function displayInfluencerDetail(i){destroyCharts();resultsContainer.classList.add('hidden');detailContainer.classList.remove('hidden');const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()).filter(Boolean):[];const p=[{name:'Instagram',value:40},{name:'YouTube',value:30},{name:'TikTok',value:20},{name:'Facebook',value:10}];const a=[{range:'<12',value:3},{range:'13-17',value:12},{range:'18-24',value:25},{range:'25-34',value:30},{range:'35-44',value:15},{range:'45-54',value:10},{range:'55-64',value:3},{range:'>65',value:2}];const g=[{name:'Hombres',value:55},{name:'Mujeres',value:45}];detailContainer.innerHTML=`<div class="detail-header"><img src="https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=ef4444&color=fff&size=120" class="avatar" alt="${i.name}"><div><h2>${i.name}</h2><p class="text-secondary">${i.platform} • Seguidores: ${(i.followers||0).toLocaleString()}</p><p>❤️ Likes: ${(i.likesAvg||0).toLocaleString()} • 💬 Comentarios: ${(i.commentsAvg||0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${i.impact}%</p></div></div><h4 style="margin-top:15px;font-size:.9rem">Nichos</h4><div class="tags">${n.map(t=>`<span class="tag">${t}</span>`).join('')}</div><button class="back-btn" id="back-btn">← Volver</button><div class="charts-row"><div class="chart-container"><div class="chart-title">Distribución por plataforma</div><canvas id="platform-chart"></canvas></div><div class="chart-container"><div class="chart-title">Distribución por edad</div><canvas id="age-chart"></canvas></div></div><div class="chart-container" style="margin-top:20px"><div class="chart-title">Distribución por género</div><canvas id="gender-chart"></canvas></div>`;document.getElementById('back-btn').onclick=()=>{detailContainer.classList.add('hidden');resultsContainer.classList.remove('hidden')};charts['platform-chart']=new Chart(document.getElementById('platform-chart'),{type:'bar',data:{labels:p.map(d=>d.name),datasets:[{data:p.map(d=>d.value),backgroundColor:'rgba(239,68,68,0.8)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#aaa'},grid:{color:'#444'}},x:{ticks:{color:'#aaa'},grid:{color:'#444'}}}}});charts['age-chart']=new Chart(document.getElementById('age-chart'),{type:'bar',data:{labels:a.map(d=>d.range),datasets:[{data:a.map(d=>d.value),backgroundColor:'rgba(59,130,246,0.8)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#aaa'},grid:{color:'#444'}},x:{ticks:{color:'#aaa'},grid:{color:'#444'}}}}});charts['gender-chart']=new Chart(document.getElementById('gender-chart'),{type:'pie',data:{labels:g.map(d=>d.name),datasets:[{data:g.map(d=>d.value),backgroundColor:['rgba(239,68,68,0.8)','rgba(59,130,246,0.8)']}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#aaa'}}}}})}
+    
+    document.addEventListener('DOMContentLoaded', () => { tabs.forEach(t => t.addEventListener('click', handleTabClick)); searchBtn.onclick = filterInfluencersData; campaignSortFilter.onchange = renderCampaignOverview; reloadDataBtn.onclick = loadData; loadData(); });
   </script>
 </body>
 </html>
