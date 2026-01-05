@@ -43,10 +43,12 @@
 
     /* --- CAMPAIGNS STYLES --- */
     /* Global Dashboard */
-    .global-dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:30px}
+    .global-dashboard{display:grid;grid-template-columns:repeat(3, 1fr);gap:15px;margin-bottom:30px}
+    @media(max-width: 768px) { .global-dashboard { grid-template-columns: 1fr 1fr; } }
+    
     .global-kpi-card{background:var(--bg-card);padding:20px;border-radius:10px;border-left:4px solid var(--primary);display:flex;flex-direction:column;justify-content:center}
     .global-kpi-card span.label{text-transform:uppercase;font-size:0.8rem;color:var(--text-secondary);margin-bottom:5px}
-    .global-kpi-card span.value{font-size:1.8rem;font-weight:bold}
+    .global-kpi-card span.value{font-size:1.6rem;font-weight:bold}
     
     /* Ranking Podium */
     .podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px;min-height:320px}
@@ -73,7 +75,7 @@
     .campaign-list-item .metric-val{font-weight:bold;color:#fff}
     .campaign-list-item .metric-lbl{font-size:0.7rem;color:var(--text-secondary)}
 
-    /* --- CAMPAIGN DETAIL NEW STYLES --- */
+    /* --- CAMPAIGN DETAIL STYLES --- */
     .campaign-detail-hero{
         position: relative;
         height: 350px;
@@ -186,28 +188,36 @@
                     <span class="value" id="global-spent">0€</span>
                 </div>
                 <div class="global-kpi-card">
-                    <span class="label">Entradas Vendidas</span>
-                    <span class="value" id="global-tickets">0</span>
+                    <span class="label">Click Through Rate (Medio)</span>
+                    <span class="value" id="global-ctr">0%</span>
                 </div>
                 <div class="global-kpi-card">
-                    <span class="label">Alcance Total</span>
+                    <span class="label">Alcance Medio</span>
                     <span class="value" id="global-reach">0</span>
                 </div>
                 <div class="global-kpi-card">
-                    <span class="label">CPA Global (Coste/Ticket)</span>
-                    <span class="value" id="global-cpa">0€</span>
+                    <span class="label">Clicks En Enlace Totales</span>
+                    <span class="value" id="global-clicks">0</span>
+                </div>
+                <div class="global-kpi-card">
+                    <span class="label">Tasa Retención Media</span>
+                    <span class="value" id="global-retention">0%</span>
+                </div>
+                 <div class="global-kpi-card">
+                    <span class="label">Frecuencia Media</span>
+                    <span class="value" id="global-frequency">0</span>
                 </div>
             </div>
 
             <!-- Gráfico Global -->
-             <div class="chart-wrapper" style="height: 250px; margin-bottom: 30px;">
+             <div class="chart-wrapper" style="height: 280px; margin-bottom: 30px;">
                 <canvas id="all-campaigns-chart"></canvas>
             </div>
 
             <div class="campaign-header">
                 <div>
                     <h2 style="color:var(--primary);margin-bottom:5px">Ranking de Campañas</h2>
-                    <p class="text-secondary">Clasificación basada en rendimiento.</p>
+                    <p class="text-secondary">Clasificación basada en métrica seleccionada.</p>
                 </div>
                 <button class="btn btn-secondary" id="reload-data-btn">🔄 Recargar Datos</button>
             </div>
@@ -215,12 +225,15 @@
             <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:30px">
                 <label for="campaign-sort-filter" class="text-secondary" style="align-self:center">Ordenar por KPI:</label>
                 <select id="campaign-sort-filter">
-                    <option value="ticketsSold">Tickets Vendidos (Más importante)</option>
-                    <option value="cpa">Coste por Ticket (Menor es mejor)</option>
-                    <option value="roi">Retorno / Ticket Rate (Mayor es mejor)</option>
-                    <option value="reach">Alcance (Reach)</option>
-                    <option value="interactions">Interacciones</option>
-                    <option value="clickRate">Click Rate (CTR)</option>
+                    <option value="score">Puntuación General (Éxito)</option>
+                    <option value="ticketsSold">Tickets vendidos</option>
+                    <option value="impressions">Impresiones</option>
+                    <option value="clickRate">CTR (Click Through Rate)</option>
+                    <option value="reach">Alcance</option>
+                    <option value="budget">Coste (Inversión)</option>
+                    <option value="cpc">Coste por Click (CPC)</option>
+                    <option value="cpm">Coste por Impresión (CPM)</option>
+                    <option value="frequency">Frecuencia</option>
                 </select>
             </div>
             
@@ -231,7 +244,7 @@
         <div id="campaign-detail-view" class="hidden"></div>
     </div>
 
-    <!-- VISTA: MIS INFLUENCERS (NUEVA) -->
+    <!-- VISTA: MIS INFLUENCERS -->
     <div id="my-influencers-view" class="hidden">
         <div class="campaign-header">
             <div>
@@ -289,7 +302,6 @@
     // 1. CARGA DE DATOS
     function loadData() {
         loader.classList.remove('hidden'); 
-        // mainContent.classList.add('hidden'); // Comentado para no parpadear todo el body al recargar
         const noCache = `?t=${new Date().getTime()}`;
         
         const p1 = new Promise((resolve, reject) => { 
@@ -303,12 +315,17 @@
                         const budget = c.Spent||0;
                         const clicks = c['Link Clicks']||0;
                         const tickets = c['Tickets Sold']||0;
+                        const impressions = c.Views||0;
                         const imageFile = c.imageFile || null;
                         const imageUrl = imageFile ? `images/${imageFile}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.Name)}&background=1f1f1f&color=fff&size=128`;
                         
+                        // Score Logic: Prioridad Clicks y Tickets
+                        // Arbitrario: 1 Ticket vale 50 puntos, 1 Click vale 1 punto.
+                        const score = (tickets * 50) + clicks;
+
                         return { 
                             id:c.Id, name:c.Name, type:c.Type, budget, 
-                            impressions:c.Views||0, reach:c.Reach||0, clicks, 
+                            impressions: impressions, reach:c.Reach||0, clicks, 
                             interactions:c.Interactions||0, retention:c['Retention Rate']||0, 
                             clickRate:c['Click Rate']||0, ticketsSold: tickets, 
                             views3s:c['3s Views']||0, imageUrl, 
@@ -318,16 +335,17 @@
                             description: `Campaña orientada a ${c.Goal} en ${c.Range}`,
                             // Métricas calculadas
                             cpc: clicks>0 ? (budget/clicks) : 0, 
-                            cpa: tickets>0 ? (budget/tickets) : 0, // Coste por adquisición (Ticket)
-                            ticketRate: c['Ticket Rate'] || (tickets > 0 ? (tickets/clicks)*100 : 0) // Si no viene en CSV
+                            cpa: tickets>0 ? (budget/tickets) : 0, 
+                            cpm: impressions>0 ? (budget/impressions)*1000 : 0, // Coste por 1000 impresiones
+                            score: score
                         };
                     }); resolve();
                 }, error: err => reject(err) });
         });
 
         const p3 = new Promise((resolve, reject) => {
-            // Cargar misinflus.csv con delimitador ;
-             Papa.parse(`data/misinflus.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ";", complete: ({ data }) => {
+            // CORRECCIÓN: Leer misinflus.csv con delimitador COMMA (,)
+             Papa.parse(`data/misinflus.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => {
                     myInfluencersData = data; resolve();
                 }, error: err => reject(err) });
         });
@@ -389,58 +407,110 @@
     
     function destroyCharts() { for (const chartId in charts) { if (charts[chartId]) { charts[chartId].destroy(); delete charts[chartId]; } } }
 
-    // 3. LOGICA CAMPAÑAS (MEJORADA)
+    // 3. LOGICA CAMPAÑAS
     function renderCampaignOverview() {
         if (campaignsData.length === 0) return;
         
-        // Calcular Totales Globales
+        // --- Cálculo de KPIs Globales ---
+        const count = campaignsData.length;
         const totalSpent = campaignsData.reduce((acc, c) => acc + c.budget, 0);
-        const totalTickets = campaignsData.reduce((acc, c) => acc + c.ticketsSold, 0);
-        const totalReach = campaignsData.reduce((acc, c) => acc + c.reach, 0);
-        const globalCPA = totalTickets > 0 ? totalSpent / totalTickets : 0;
+        const totalClicks = campaignsData.reduce((acc, c) => acc + c.clicks, 0);
+        
+        // Promedios simples (según solicitud)
+        const avgCTR = campaignsData.reduce((acc, c) => acc + c.clickRate, 0) / count;
+        const avgReach = campaignsData.reduce((acc, c) => acc + c.reach, 0) / count;
+        const avgRetention = campaignsData.reduce((acc, c) => acc + c.retention, 0) / count;
+        const avgFrequency = campaignsData.reduce((acc, c) => acc + c.frequency, 0) / count;
 
+        // Inyección en HTML
         document.getElementById('global-spent').innerText = totalSpent.toLocaleString('es-ES', {style:'currency', currency:'EUR'});
-        document.getElementById('global-tickets').innerText = totalTickets.toLocaleString();
-        document.getElementById('global-reach').innerText = totalReach.toLocaleString();
-        document.getElementById('global-cpa').innerText = globalCPA.toFixed(2) + '€';
+        document.getElementById('global-ctr').innerText = avgCTR.toFixed(2) + '%';
+        document.getElementById('global-reach').innerText = Math.round(avgReach).toLocaleString();
+        document.getElementById('global-clicks').innerText = totalClicks.toLocaleString();
+        document.getElementById('global-retention').innerText = avgRetention.toFixed(2) + '%';
+        document.getElementById('global-frequency').innerText = avgFrequency.toFixed(2);
 
-        // Gráfico Comparativo Global
+        // --- Gráfico de Línea Cronológico ---
+        const sortKey = campaignSortFilter.value;
+        
+        // Ordenamos por ID para el gráfico (Cronológico)
+        const chronologicalData = [...campaignsData].sort((a,b) => a.id - b.id);
+        
+        // Labels dinámicos para el gráfico
+        const kpiLabels = {
+            'score': 'Puntuación General',
+            'ticketsSold': 'Tickets Vendidos',
+            'impressions': 'Impresiones',
+            'clickRate': 'CTR (%)',
+            'reach': 'Alcance',
+            'budget': 'Inversión (€)',
+            'cpc': 'Coste por Click (€)',
+            'cpm': 'Coste por Mil Impr (€)',
+            'frequency': 'Frecuencia'
+        };
+
         destroyCharts();
         const ctxGlobal = document.getElementById('all-campaigns-chart').getContext('2d');
         charts['global'] = new Chart(ctxGlobal, {
-            type: 'bar',
+            type: 'line', // Solicitado: Línea
             data: {
-                labels: campaignsData.map(c => c.name),
+                labels: chronologicalData.map(c => c.name),
                 datasets: [
-                    { label: 'Entradas Vendidas', data: campaignsData.map(c => c.ticketsSold), backgroundColor: '#22c55e', yAxisID: 'y' },
-                    { label: 'Interacciones', data: campaignsData.map(c => c.interactions), backgroundColor: '#ef4444', yAxisID: 'y1' }
+                    { 
+                        label: kpiLabels[sortKey] || sortKey, 
+                        data: chronologicalData.map(c => c[sortKey]), 
+                        borderColor: '#ef4444', 
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        tension: 0.3,
+                        fill: true
+                    }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
                 scales: {
                     x: { ticks: {color: '#aaa'} },
-                    y: { type: 'linear', display: true, position: 'left', ticks: {color: '#22c55e'} },
-                    y1: { type: 'linear', display: true, position: 'right', grid: {drawOnChartArea: false}, ticks: {color: '#ef4444'} }
+                    y: { ticks: {color: '#aaa'}, grid: {color: '#333'} }
                 },
-                plugins: { legend: {labels:{color:'#fff'}} }
+                plugins: { 
+                    legend: {labels:{color:'#fff'}},
+                    tooltip: {
+                         callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    if(sortKey === 'budget' || sortKey === 'cpc' || sortKey === 'cpm') 
+                                        label += context.parsed.y.toFixed(2) + '€';
+                                    else if(sortKey === 'clickRate')
+                                        label += context.parsed.y.toFixed(2) + '%';
+                                    else
+                                        label += context.parsed.y.toLocaleString();
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
             }
         });
 
-        // Ordenar Lista
-        const sortKey = campaignSortFilter.value;
+        // --- Ordenación del Listado (Ranking) ---
         let sortedData = [...campaignsData];
         
-        if (sortKey === 'cpa') {
-            // Para CPA, menor es mejor (pero excluimos 0/infinito si no hubo ventas para ponerlos al final)
-            sortedData.sort((a,b) => {
-                const valA = a.cpa === 0 ? 999999 : a.cpa;
-                const valB = b.cpa === 0 ? 999999 : b.cpa;
-                return valA - valB;
-            });
-        } else {
-            // Para el resto, mayor es mejor
+        if (sortKey === 'cpc' || sortKey === 'cpm' || sortKey === 'budget') {
+            // En costes unitarios, ¿mejor es menos? Depende. El usuario quiere "Ordenar por KPI".
+            // Normalmente "Ordenar por Coste" implica ver dónde gasté más (Descendente).
+            // "Ordenar por CPC" suele ser ver el más caro o barato.
+            // Asumiremos Descendente (Mayor a Menor) para todo por defecto para ver "Top", 
+            // EXCEPTO Rankings de Eficiencia donde menor es mejor. 
+            // Pero para simplificar la visualización de datos brutos, haremos Descendente.
             sortedData.sort((a,b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+        } else {
+             sortedData.sort((a,b) => (b[sortKey] || 0) - (a[sortKey] || 0));
         }
 
         const podium = sortedData.slice(0, 3);
@@ -448,10 +518,14 @@
         
         const getMetricDisplay = (c, key) => { 
             if (key === 'ticketsSold') return c.ticketsSold + ' Tickets';
-            if (key === 'cpa') return c.cpa > 0 ? c.cpa.toFixed(2) + '€ / Ticket' : 'N/A';
+            if (key === 'score') return c.score.toFixed(0) + ' Pts';
             if (key === 'reach') return (c.reach/1000).toFixed(1) + 'k Alcance';
             if (key === 'clickRate') return c.clickRate.toFixed(2) + '% CTR';
-            if (key === 'interactions') return c.interactions.toLocaleString() + ' Int.';
+            if (key === 'budget') return c.budget.toFixed(0) + '€ Inv.';
+            if (key === 'cpc') return c.cpc.toFixed(2) + '€ CPC';
+            if (key === 'cpm') return c.cpm.toFixed(2) + '€ CPM';
+            if (key === 'impressions') return (c.impressions/1000).toFixed(0) + 'k Impr.';
+            if (key === 'frequency') return c.frequency.toFixed(2) + ' Freq';
             return c[key]; 
         };
 
@@ -473,8 +547,8 @@
                 </div>
                 <div class="metric-group">
                     <div class="metric-col"><span class="metric-val">${c.ticketsSold}</span><span class="metric-lbl">Tickets</span></div>
-                    <div class="metric-col"><span class="metric-val">${c.cpa.toFixed(2)}€</span><span class="metric-lbl">CPA</span></div>
-                    <div class="metric-col"><span class="metric-val">${c.clickRate}%</span><span class="metric-lbl">CTR</span></div>
+                    <div class="metric-col"><span class="metric-val">${c.clicks}</span><span class="metric-lbl">Clics</span></div>
+                    <div class="metric-col"><span class="metric-val">${c[sortKey] !== undefined && typeof c[sortKey] === 'number' ? c[sortKey].toLocaleString(undefined, {maximumFractionDigits:2}) : ''}</span><span class="metric-lbl">${kpiLabels[sortKey] || 'Valor'}</span></div>
                 </div>
             </div>`).join('')}</div>` : '';
 
@@ -604,8 +678,6 @@
         const grouped = {};
         
         myInfluencersData.forEach(row => {
-            // Ajustar claves según CSV (headers pueden variar ligeramente)
-            // Asumimos: "ID influencer", "Influencer", "Plataforma", "Impresiones", etc.
             const id = row['ID influencer'];
             if (!id) return;
 
@@ -613,7 +685,7 @@
                 grouped[id] = {
                     id: id,
                     name: row['Influencer'],
-                    platform: row['Plataforma'], // Tomamos la última o primera plataforma
+                    platform: row['Plataforma'], 
                     image: row['Imagen'],
                     impressions: 0, likes: 0, comments: 0, reach: 0, shares: 0,
                     men: 0, women: 0,
@@ -628,14 +700,13 @@
             grouped[id].reach += (row['Cuentas Alcanzadas'] || 0);
             grouped[id].shares += (row['Veces compartidas'] || 0);
 
-            // Promedios demográficos (simple)
+            // Promedios demográficos
             grouped[id].men += (row['Hombres'] || 0);
             grouped[id].women += (row['Mujeres'] || 0);
             grouped[id].count++;
         });
 
         Object.values(grouped).forEach(influ => {
-            // Calcular promedios
             const avgMen = Math.round(influ.men / influ.count);
             const avgWomen = Math.round(influ.women / influ.count);
             const imageUrl = influ.image ? `images/${influ.image}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(influ.name)}&background=random`;
@@ -668,11 +739,11 @@
         });
     }
 
-    // 5. LOGICA EXPLORAR (Antigua, mantenida)
+    // 5. LOGICA EXPLORAR
     let filteredInfluencers = []; 
     function populateTagFilters(){
         const t1=document.getElementById('tag1-filter'),t2=document.getElementById('tag2-filter');
-        if(t1.options.length > 1) return; // Evitar duplicar si ya se cargó
+        if(t1.options.length > 1) return;
         const n=influencersData.flatMap(i=>(!i.niche||typeof i.niche!=='string')?[]:i.niche.split('|').map(s=>s.trim()));
         [...new Set(n.filter(Boolean))].sort().forEach(tag=>{t1.appendChild(new Option(tag,tag));t2.appendChild(new Option(tag,tag))})
     }
@@ -702,7 +773,7 @@
         
         filteredInfluencers.forEach(i=>{
             const impactRaw = ((i.likesAvg||0)+(i.commentsAvg||0)*1.5)/(i.followers||1)*100;
-            const impact = impactRaw > 100 ? 100 : impactRaw.toFixed(2); // Normalizar algo visual
+            const impact = impactRaw > 100 ? 100 : impactRaw.toFixed(2);
             
             const card=document.createElement('div');
             card.className='result-card';
@@ -733,7 +804,7 @@
         new Chart(document.getElementById('influencer-chart'),{
             type:'bar',
             data:{labels:['Seguidores','Likes Avg','Comentarios Avg'],datasets:[{label:'Métricas',data:[i.followers,i.likesAvg,i.commentsAvg],backgroundColor:['#ef4444','#f59e0b','#3b82f6']}]},
-            options:{responsive:true,maintainAspectRatio:false,scales:{y:{type:'logarithmic'}}} // Logarítmico porque followers suele ser mucho mayor
+            options:{responsive:true,maintainAspectRatio:false,scales:{y:{type:'logarithmic'}}}
         });
     }
     
@@ -748,4 +819,5 @@
   </script>
 </body>
 </html>
+
 
