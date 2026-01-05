@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Caza Influencers</title>
+  <title>Caza Influencers - Dashboard Pro</title>
   <!--  🎨  Estilos  -->
   <style>
-    :root{--primary:#ef4444;--primary-dark:#7f1d1d;--bg-dark:#111;--bg-card:#1f1f1f;--bg-input:#2d2d2d;--text:#fff;--text-secondary:#aaa;--border:#444;--success:#22c55e;--warning:#f59e0b;--podium-gold:#ffd700;--podium-silver:#c0c0c0;--podium-bronze:#cd7f32}
+    :root{--primary:#ef4444;--primary-dark:#7f1d1d;--bg-dark:#111;--bg-card:#1f1f1f;--bg-input:#2d2d2d;--text:#fff;--text-secondary:#aaa;--border:#444;--success:#22c55e;--warning:#f59e0b;--danger:#dc2626;--podium-gold:#ffd700;--podium-silver:#c0c0c0;--podium-bronze:#cd7f32}
     *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
     body{background:var(--bg-dark);color:var(--text);padding:20px}
     .container{max-width:1200px;margin:0 auto}
@@ -14,194 +14,738 @@
     h1{font-size:3rem;text-transform:uppercase;letter-spacing:3px;background:linear-gradient(to right,var(--primary),var(--primary-dark));-webkit-background-clip:text;color:transparent;margin-bottom:20px}
     .logos{display:flex;justify-content:space-between;align-items:center}
     .logos img{height:60px}
-    .tabs{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
-    .tab{padding:10px 20px;border-radius:5px;background:var(--bg-card);border:none;color:var(--text);cursor:pointer;transition:background .3s}
-    .tab.active{background:var(--primary)}
-    .filter-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:15px;border-radius:10px;background:var(--bg-card);border:1px solid var(--primary);margin-bottom:20px}
-    select,input[type="text"]{width:100%;padding:8px;border-radius:5px;background:var(--bg-input);border:1px solid var(--border);color:var(--text)}
-    .btn{background:linear-gradient(to right,var(--primary),var(--primary-dark));color:#fff;border:none;padding:8px 12px;border-radius:5px;cursor:pointer;font-weight:bold;text-decoration:none;display:inline-block;text-align:center}
-    .btn-secondary{background:var(--bg-card);border:1px solid var(--border)}
-    .results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
-    .result-card{background:var(--bg-card);border:1px solid var(--primary);border-radius:5px;padding:15px;cursor:pointer;transition:background .3s}
-    .result-card:hover{background:#2a2a2a}
-    .result-card h3{font-size:1.2rem;margin-bottom:5px}
-    .result-card p{font-size:.9rem;margin-bottom:3px}
-    .text-secondary{color:var(--text-secondary)}
-    .text-impact{color:var(--success);font-weight:bold}
-    .detail-view{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px}
-    .detail-header{display:flex;align-items:center;gap:20px;margin-bottom:20px}
-    .avatar{width:120px;height:120px;border-radius:50%;border:2px solid var(--border);object-fit:cover}
-    .back-btn{color:var(--primary);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:10px}
-    .tags{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
-    .tag{background:var(--bg-input);padding:3px 10px;border-radius:999px;font-size:.8rem}
-    .hidden{display:none}
-    .loader{border:5px solid var(--bg-input);border-top:5px solid var(--primary);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:20px auto}
-    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
     
-    .campaign-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-    .podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px;min-height:280px}
-    .podium-item{border-radius:10px 10px 0 0;padding:20px;text-align:center;transition:all .3s ease;cursor:pointer;position:relative;width:28%;background-size:cover;background-position:center}
-    .podium-item::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(31,31,31,0.7);border-radius:inherit;transition:background .3s}
-    .podium-item:hover::before{background:rgba(31,31,31,0.5)}
-    .podium-item > *{position:relative;z-index:2;text-shadow:1px 1px 4px #000}
-    .podium-item:hover{transform:translateY(-10px);box-shadow:0 10px 20px rgba(0,0,0,0.3)}
-    .podium-item--1{order:2;height:240px;border-bottom:5px solid var(--podium-gold);transform:scale(1.1)}
-    .podium-item--2{order:1;height:200px;border-bottom:5px solid var(--podium-silver)}
-    .podium-item--3{order:3;height:180px;border-bottom:5px solid var(--podium-bronze)}
-    .podium-rank{font-size:3rem;font-weight:bold;line-height:1;margin-bottom:10px}
+    /* TABS */
+    .tabs{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+    .tab{padding:10px 20px;border-radius:5px;background:var(--bg-card);border:none;color:var(--text);cursor:pointer;transition:background .3s;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
+    .tab:hover{background:#333}
+    .tab.active{background:var(--primary);color:white}
+    
+    /* FILTROS Y INPUTS */
+    .filter-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:15px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border);margin-bottom:20px}
+    select,input[type="text"]{width:100%;padding:10px;border-radius:5px;background:var(--bg-input);border:1px solid var(--border);color:var(--text)}
+    .btn{background:linear-gradient(to right,var(--primary),var(--primary-dark));color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;font-weight:bold;text-decoration:none;display:inline-block;text-align:center;transition:transform 0.1s}
+    .btn:active{transform:scale(0.98)}
+    .btn-secondary{background:var(--bg-card);border:1px solid var(--border)}
+    
+    /* CARDS GENERALES */
+    .results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+    .result-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:15px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+    .result-card:hover{transform:translateY(-5px);border-color:var(--primary);box-shadow:0 5px 15px rgba(239,68,68,0.2)}
+    .result-card h3{font-size:1.2rem;margin-bottom:5px;color:var(--primary)}
+    .text-secondary{color:var(--text-secondary);font-size:0.9rem}
+    .text-impact{color:var(--success);font-weight:bold}
+    .hidden{display:none!important}
+    
+    /* LOADER */
+    .loader{border:5px solid var(--bg-input);border-top:5px solid var(--primary);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:50px auto}
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+
+    /* --- CAMPAIGNS STYLES --- */
+    /* Global Dashboard */
+    .global-dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:30px}
+    .global-kpi-card{background:var(--bg-card);padding:20px;border-radius:10px;border-left:4px solid var(--primary);display:flex;flex-direction:column;justify-content:center}
+    .global-kpi-card span.label{text-transform:uppercase;font-size:0.8rem;color:var(--text-secondary);margin-bottom:5px}
+    .global-kpi-card span.value{font-size:1.8rem;font-weight:bold}
+    
+    /* Ranking Podium */
+    .podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px;min-height:320px}
+    .podium-item{border-radius:10px 10px 0 0;padding:20px;text-align:center;transition:all .3s ease;cursor:pointer;position:relative;width:30%;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1000px rgba(0,0,0,0.6)}
+    .podium-item:hover{box-shadow:inset 0 0 0 1000px rgba(0,0,0,0.3);transform:translateY(-10px)}
+    .podium-item--1{order:2;height:280px;border-bottom:6px solid var(--podium-gold);transform:scale(1.05);z-index:2}
+    .podium-item--2{order:1;height:240px;border-bottom:6px solid var(--podium-silver)}
+    .podium-item--3{order:3;height:220px;border-bottom:6px solid var(--podium-bronze)}
+    .podium-rank{font-size:4rem;font-weight:900;line-height:1;margin-bottom:10px;text-shadow:0 2px 5px rgba(0,0,0,0.8)}
     .podium-item--1 .podium-rank{color:var(--podium-gold)}
     .podium-item--2 .podium-rank{color:var(--podium-silver)}
     .podium-item--3 .podium-rank{color:var(--podium-bronze)}
-    .podium-name{font-size:1.1rem;font-weight:bold;margin-bottom:8px}
-    .podium-metric{font-size:1rem;color:var(--success);font-weight:bold}
-    .campaign-list-container h3{text-align:center;color:var(--text-secondary);margin:40px 0 20px;text-transform:uppercase;letter-spacing:2px}
-    .campaign-list-item{display:flex;align-items:center;background:var(--bg-card);padding:15px;border-radius:5px;margin-bottom:10px;cursor:pointer;transition:all .2s;border-left:4px solid transparent}
+    .podium-name{font-size:1.2rem;font-weight:bold;margin-bottom:8px;text-shadow:0 1px 3px black}
+    .podium-metric{font-size:1.1rem;color:var(--success);background:rgba(0,0,0,0.8);padding:2px 8px;border-radius:4px;display:inline-block}
+
+    /* List View */
+    .campaign-list-item{display:flex;align-items:center;background:var(--bg-card);padding:15px;border-radius:8px;margin-bottom:10px;cursor:pointer;transition:background .2s;border-left:4px solid transparent}
     .campaign-list-item:hover{background:#2a2a2a;border-left-color:var(--primary)}
-    .campaign-list-thumbnail{width:50px;height:50px;border-radius:50%;object-fit:cover;margin-right:15px;border:2px solid var(--border)}
+    .campaign-list-thumbnail{width:60px;height:60px;border-radius:8px;object-fit:cover;margin-right:20px}
     .campaign-list-item .info{flex-grow:1}
-    .campaign-list-item .info h4{font-size:1.1rem;margin:0}
-    .campaign-list-item .metric{font-size:1.1rem;font-weight:bold;color:var(--success);min-width:120px;text-align:right}
+    .campaign-list-item .info h4{font-size:1.2rem;margin:0}
+    .campaign-list-item .metric-group{display:flex;gap:20px;text-align:right}
+    .campaign-list-item .metric-col{display:flex;flex-direction:column}
+    .campaign-list-item .metric-val{font-weight:bold;color:#fff}
+    .campaign-list-item .metric-lbl{font-size:0.7rem;color:var(--text-secondary)}
 
-    /* ESTILOS DETALLE DE CAMPAÑA ANALÍTICO */
-    .campaign-detail-container{padding:20px; background: var(--bg-dark);}
-    .campaign-detail-header h2{color:var(--primary)}
-    .campaign-detail-main-grid{display:grid;grid-template-columns:2fr 1.2fr;gap:20px;margin-top:20px}
-    .charts-section{display:flex;flex-direction:column;gap:20px}
-    .chart-wrapper{background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border);height:300px;position:relative}
-    .kpis-section{display:flex;flex-direction:column;gap:15px}
-    .kpi-card-hero{background:linear-gradient(45deg, var(--success), #1a4d2e);padding:20px;border-radius:10px;text-align:center;color:#fff;}
-    .kpi-card-hero .kpi-title{font-size:1rem;text-transform:uppercase;opacity:.8}
-    .kpi-card-hero .kpi-value{font-size:3.5rem;font-weight:bold;line-height:1}
-    .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
-    .kpi-card-small{background:var(--bg-card);padding:15px;border-radius:10px;border:1px solid var(--border)}
+    /* --- CAMPAIGN DETAIL NEW STYLES --- */
+    .campaign-detail-hero{
+        position: relative;
+        height: 350px;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: flex-end;
+        background-color: var(--bg-card);
+        background-size: cover;
+        background-position: center;
+    }
+    .campaign-detail-hero::before {
+        content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.9));
+    }
+    .campaign-hero-content {
+        position: relative;
+        z-index: 2;
+        padding: 30px;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+    .campaign-hero-title h2 { font-size: 3rem; margin: 0; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+    .campaign-hero-title p { font-size: 1.2rem; color: #ddd; margin-top: 5px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    .campaign-status-badge {
+        padding: 8px 16px; border-radius: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+        backdrop-filter: blur(5px);
+        background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid var(--success);
+    }
+    .campaign-status-badge.bad { background: rgba(220, 38, 38, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+
+    .campaign-detail-main-grid{display:grid;grid-template-columns:2fr 1.2fr;gap:25px}
+    .chart-wrapper{background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border);height:320px;position:relative;margin-bottom: 20px;}
+    
+    .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom: 20px;}
+    .kpi-card-small{background:var(--bg-card);padding:15px;border-radius:10px;border:1px solid var(--border); transition: transform 0.2s;}
+    .kpi-card-small:hover{transform: translateY(-2px); border-color: var(--primary);}
     .kpi-card-small .kpi-title{font-size:0.8rem;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;display:flex;align-items:center}
-    .kpi-card-small .kpi-title .icon{margin-right:8px;font-size:1rem;color:var(--primary)}
-    .kpi-card-small .kpi-value{font-size:1.8rem;font-weight:bold;line-height:1}
-    .kpis-section h3 { color: var(--primary); margin-top: 15px; margin-bottom: 0px; border-bottom: 1px solid var(--border); padding-bottom: 5px; font-size: 1rem; }
+    .kpi-card-small .kpi-value{font-size:1.6rem;font-weight:bold;line-height:1}
+    .kpi-eval { font-size: 0.8rem; margin-top: 5px; font-weight: bold; }
+    .good { color: var(--success); } .bad { color: var(--danger); } .neutral { color: var(--warning); }
 
-    @media(max-width:900px){.campaign-detail-main-grid{grid-template-columns:1fr}.charts-section,.kpis-section{order:1}}
+    /* --- MIS INFLUENCERS STYLES --- */
+    .my-influencer-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+    }
+    .my-influencer-header {
+        padding: 20px;
+        background: linear-gradient(45deg, var(--bg-input), var(--bg-card));
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border-bottom: 1px solid var(--border);
+    }
+    .my-influencer-avatar {
+        width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary); object-fit: cover;
+    }
+    .my-influencer-stats {
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    .stat-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; }
+    .stat-row span:first-child { color: var(--text-secondary); font-size: 0.9rem; }
+    .stat-row span:last-child { font-weight: bold; }
+    .demographics-bar {
+        height: 6px; width: 100%; background: #333; border-radius: 3px; margin-top: 5px; overflow: hidden; display: flex;
+    }
+    .demographics-fill { height: 100%; }
+
+    /* Responsive */
+    @media(max-width:900px){.campaign-detail-main-grid{grid-template-columns:1fr}.campaign-hero-content{flex-direction:column;align-items:flex-start;gap:15px}}
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.3.0/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="container" id="mainContent">
-    <header><h1>Caza Influencers</h1><div class="logos"><img src="https://images.mediapro.es/generic/companies/logo_geca.png" alt="Logo Geca" /><img src="https://www.cinesfilmax.com/assets/cinesfilmax-logo.svg" alt="Logo Filmax"/></div></header>
-    <div class="tabs"><button class="tab active" data-tab="explorar">Explorar</button><button class="tab" data-tab="campanas">Tus campañas</button></div>
-    <div id="explore-view">
-        <div class="filter-bar"><select id="platform-filter"><option value="Todos">Todas las plataformas</option><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option><option value="TikTok">TikTok</option><option value="Reddit">Reddit</option></select><select id="followers-filter"><option value="Todos">Todos los seguidores</option><option value="<100K">Menos de 100K</option><option value="100K-500K">Entre 100K y 500K</option><option value=">500K">Más de 500K</option></select><select id="tag1-filter"><option value="Todos">Todos los nichos</option></select><select id="tag2-filter"><option value="Todos">Todos los nichos (2)</option></select><input type="text" id="search-input" placeholder="Buscar..." /><button class="btn" id="search-btn" disabled>🔍 Buscar</button></div>
+    <header>
+        <h1>Caza Influencers</h1>
+        <div class="logos">
+            <img src="https://images.mediapro.es/generic/companies/logo_geca.png" alt="Logo Geca" />
+            <img src="https://www.cinesfilmax.com/assets/cinesfilmax-logo.svg" alt="Logo Filmax"/>
+        </div>
+    </header>
+    
+    <!-- Pestañas Reordenadas -->
+    <div class="tabs">
+        <button class="tab active" data-tab="campanas">Tus campañas</button>
+        <button class="tab" data-tab="mis-influencers">Mis Influencers</button>
+        <button class="tab" data-tab="explorar">Explorar</button>
+    </div>
+
+    <!-- VISTA: TUS CAMPAÑAS -->
+    <div id="campaign-view">
+        <div id="campaign-overview-view">
+            <!-- Global KPIs -->
+            <div class="global-dashboard">
+                <div class="global-kpi-card">
+                    <span class="label">Inversión Total</span>
+                    <span class="value" id="global-spent">0€</span>
+                </div>
+                <div class="global-kpi-card">
+                    <span class="label">Entradas Vendidas</span>
+                    <span class="value" id="global-tickets">0</span>
+                </div>
+                <div class="global-kpi-card">
+                    <span class="label">Alcance Total</span>
+                    <span class="value" id="global-reach">0</span>
+                </div>
+                <div class="global-kpi-card">
+                    <span class="label">CPA Global (Coste/Ticket)</span>
+                    <span class="value" id="global-cpa">0€</span>
+                </div>
+            </div>
+
+            <!-- Gráfico Global -->
+             <div class="chart-wrapper" style="height: 250px; margin-bottom: 30px;">
+                <canvas id="all-campaigns-chart"></canvas>
+            </div>
+
+            <div class="campaign-header">
+                <div>
+                    <h2 style="color:var(--primary);margin-bottom:5px">Ranking de Campañas</h2>
+                    <p class="text-secondary">Clasificación basada en rendimiento.</p>
+                </div>
+                <button class="btn btn-secondary" id="reload-data-btn">🔄 Recargar Datos</button>
+            </div>
+            
+            <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:30px">
+                <label for="campaign-sort-filter" class="text-secondary" style="align-self:center">Ordenar por KPI:</label>
+                <select id="campaign-sort-filter">
+                    <option value="ticketsSold">Tickets Vendidos (Más importante)</option>
+                    <option value="cpa">Coste por Ticket (Menor es mejor)</option>
+                    <option value="roi">Retorno / Ticket Rate (Mayor es mejor)</option>
+                    <option value="reach">Alcance (Reach)</option>
+                    <option value="interactions">Interacciones</option>
+                    <option value="clickRate">Click Rate (CTR)</option>
+                </select>
+            </div>
+            
+            <div id="campaign-overview-content"></div>
+        </div>
+        
+        <!-- Detalle Campaña Individual -->
+        <div id="campaign-detail-view" class="hidden"></div>
+    </div>
+
+    <!-- VISTA: MIS INFLUENCERS (NUEVA) -->
+    <div id="my-influencers-view" class="hidden">
+        <div class="campaign-header">
+            <div>
+                <h2 style="color:var(--primary)">Mis Influencers Activos</h2>
+                <p class="text-secondary">Rendimiento acumulado de influencers contratados (Agrupado por ID).</p>
+            </div>
+        </div>
+        <div id="my-influencers-grid" class="results-grid">
+            <!-- Se llena con JS -->
+        </div>
+    </div>
+
+    <!-- VISTA: EXPLORAR -->
+    <div id="explore-view" class="hidden">
+        <div class="filter-bar">
+            <select id="platform-filter"><option value="Todos">Todas las plataformas</option><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option><option value="TikTok">TikTok</option><option value="Reddit">Reddit</option></select>
+            <select id="followers-filter"><option value="Todos">Todos los seguidores</option><option value="<100K">Menos de 100K</option><option value="100K-500K">Entre 100K y 500K</option><option value=">500K">Más de 500K</option></select>
+            <select id="tag1-filter"><option value="Todos">Todos los nichos</option></select>
+            <select id="tag2-filter"><option value="Todos">Todos los nichos (2)</option></select>
+            <input type="text" id="search-input" placeholder="Buscar..." />
+            <button class="btn" id="search-btn" disabled>🔍 Buscar</button>
+        </div>
         <div id="results-container" class="results-grid hidden"></div>
         <div id="detail-container" class="detail-view hidden"></div>
     </div>
-    <div id="campaign-view" class="hidden">
-        <div id="campaign-overview-view">
-            <div class="campaign-header"><div><h2 style="color:var(--primary);margin-bottom:5px">Ranking de Campañas</h2><p class="text-secondary">Clasificación de todas tus campañas activas e históricas.</p></div><button class="btn btn-secondary" id="reload-data-btn">🔄 Recargar Datos</button></div>
-            <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:30px">
-                <label for="campaign-sort-filter" class="text-secondary" style="align-self:center">Ordenar por:</label>
-                <select id="campaign-sort-filter">
-                    <option value="performance">Ratio de Rendimiento</option>
-                    <option value="clickRate">Click Rate (Más a Menos)</option>
-                    <option value="impressions">Impresiones (Más a Menos)</option>
-                    <option value="budget">Presupuesto (Más a Menos)</option>
-                    <option value="cpc">Coste por Clic (Menos a Más)</option>
-                </select>
-            </div><div id="campaign-overview-content"></div>
-        </div><div id="campaign-detail-view" class="hidden"></div>
-    </div><div id="loader" class="loader"></div>
+    
+    <div id="loader" class="loader"></div>
   </div>
 
   <script>
-    let influencersData = [], campaignsData = [];
-    const mainContent = document.getElementById('mainContent'), tabs = document.querySelectorAll('.tab'), exploreView = document.getElementById('explore-view'), campaignView = document.getElementById('campaign-view'), loader = document.getElementById('loader'), searchBtn = document.getElementById('search-btn'), resultsContainer = document.getElementById('results-container'), detailContainer = document.getElementById('detail-container'), campaignOverviewView = document.getElementById('campaign-overview-view'), campaignDetailView = document.getElementById('campaign-detail-view'), campaignOverviewContent = document.getElementById('campaign-overview-content'), campaignSortFilter = document.getElementById('campaign-sort-filter'), reloadDataBtn = document.getElementById('reload-data-btn');
+    let influencersData = [], campaignsData = [], myInfluencersData = [];
     let charts = {};
 
+    // Referencias DOM
+    const mainContent = document.getElementById('mainContent');
+    const loader = document.getElementById('loader');
+    const tabs = document.querySelectorAll('.tab');
+    
+    // Views
+    const exploreView = document.getElementById('explore-view');
+    const campaignView = document.getElementById('campaign-view');
+    const myInfluencersView = document.getElementById('my-influencers-view');
+    
+    // Campaign Sub-views
+    const campaignOverviewView = document.getElementById('campaign-overview-view');
+    const campaignDetailView = document.getElementById('campaign-detail-view');
+    const campaignOverviewContent = document.getElementById('campaign-overview-content');
+    const campaignSortFilter = document.getElementById('campaign-sort-filter');
+    
+    // Explore Inputs
+    const searchBtn = document.getElementById('search-btn');
+    const resultsContainer = document.getElementById('results-container');
+    const detailContainer = document.getElementById('detail-container');
+
+    // 1. CARGA DE DATOS
     function loadData() {
-        loader.classList.remove('hidden'); mainContent.classList.add('hidden');
+        loader.classList.remove('hidden'); 
+        // mainContent.classList.add('hidden'); // Comentado para no parpadear todo el body al recargar
         const noCache = `?t=${new Date().getTime()}`;
-        const influencersPromise = new Promise((resolve, reject) => { Papa.parse(`data/influencers.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => { influencersData = data.filter(r => r.id != null && r.id !== "").map(r => ({ ...r, platform: (r.platform && typeof r.platform === 'string') ? (r.platform.toLowerCase() === 'youtube' ? 'YouTube' : r.platform.charAt(0).toUpperCase() + r.platform.slice(1).toLowerCase()) : r.platform })); resolve(); }, error: err => reject(new Error(`influencers.csv: ${err.message}`)) }); });
-        const campaignsPromise = new Promise((resolve, reject) => {
+        
+        const p1 = new Promise((resolve, reject) => { 
+            Papa.parse(`data/influencers.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => { influencersData = data; resolve(); }, error: err => reject(err) }); 
+        });
+        
+        const p2 = new Promise((resolve, reject) => {
              Papa.parse(`data/campaigns.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ",", complete: ({ data }) => {
-                    campaignsData = data.filter(r => r.Id != null && r.Id !== "").map(c => {
-                        const budget=c.Spent||0, impressions=c.Views||0, reach=c.Reach||0, clicks=c['Link Clicks']||0, type=c.Type||'Unknown', interactions=c.Interactions||0, retention=c['Retention Rate']||0, clickRate=c['Click Rate']||0, ticketsSold=c['Tickets Sold']||0, views3s=c['3s Views']||0;
+                    campaignsData = data.filter(r => r.Id != null).map(c => {
+                        // Limpieza y cálculo de métricas base
+                        const budget = c.Spent||0;
+                        const clicks = c['Link Clicks']||0;
+                        const tickets = c['Tickets Sold']||0;
                         const imageFile = c.imageFile || null;
                         const imageUrl = imageFile ? `images/${imageFile}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.Name)}&background=1f1f1f&color=fff&size=128`;
-                        return { id:c.Id, name:c.Name, type, budget, impressions, reach, clicks, interactions, retention, clickRate, ticketsSold, views3s, imageUrl, daysActive: c['Days Active']||0, spentPerDay: c['Spent Per Day']||0, frequency: c.Frequency||0, reactions: c.Reactions||0, goal: c.Goal||'N/A', range: c.Range||'N/A', status:c.Status||'Activa', description:c.Description||`Campaña de ${c.Content} para ${c.Name}.`, cpc:clicks>0?(budget/clicks):0, cpm:impressions>0?(budget/impressions)*1000:0, performance:(type==='Meta'&&budget>0?(reach/budget):(impressions/budget))||0 };
+                        
+                        return { 
+                            id:c.Id, name:c.Name, type:c.Type, budget, 
+                            impressions:c.Views||0, reach:c.Reach||0, clicks, 
+                            interactions:c.Interactions||0, retention:c['Retention Rate']||0, 
+                            clickRate:c['Click Rate']||0, ticketsSold: tickets, 
+                            views3s:c['3s Views']||0, imageUrl, 
+                            daysActive: c['Days Active']||0, spentPerDay: c['Spent Per Day']||0, 
+                            frequency: c.Frequency||0, reactions: c.Reactions||0, 
+                            goal: c.Goal||'N/A', range: c.Range||'N/A', 
+                            description: `Campaña orientada a ${c.Goal} en ${c.Range}`,
+                            // Métricas calculadas
+                            cpc: clicks>0 ? (budget/clicks) : 0, 
+                            cpa: tickets>0 ? (budget/tickets) : 0, // Coste por adquisición (Ticket)
+                            ticketRate: c['Ticket Rate'] || (tickets > 0 ? (tickets/clicks)*100 : 0) // Si no viene en CSV
+                        };
                     }); resolve();
-                }, error: err => reject(new Error(`campaigns.csv: ${err.message}`)) });
+                }, error: err => reject(err) });
         });
-        Promise.all([influencersPromise, campaignsPromise]).then(() => { console.log("Todos los datos cargados."); initApp(); }).catch(error => { loader.classList.add('hidden'); mainContent.innerHTML = `<p style="text-align:center; color: var(--primary);">Error al cargar datos: ${error.message}<br>Asegúrate de que los archivos CSV están en la carpeta /data, guardados como UTF-8 y con el delimitador correcto (,).</p>`; mainContent.classList.remove('hidden'); });
+
+        const p3 = new Promise((resolve, reject) => {
+            // Cargar misinflus.csv con delimitador ;
+             Papa.parse(`data/misinflus.csv${noCache}`, { download: true, header: true, dynamicTyping: true, skipEmptyLines: true, delimiter: ";", complete: ({ data }) => {
+                    myInfluencersData = data; resolve();
+                }, error: err => reject(err) });
+        });
+
+        Promise.all([p1, p2, p3]).then(() => { 
+            console.log("Datos cargados."); 
+            initApp(); 
+        }).catch(error => { 
+            console.error(error);
+            loader.classList.add('hidden'); 
+            alert("Error cargando datos. Revisa la consola.");
+        });
     }
 
-    function initApp() { loader.classList.add('hidden'); mainContent.classList.remove('hidden'); searchBtn.removeAttribute('disabled'); handleTabClick({ target: document.querySelector('.tab.active') }); }
-    function handleTabClick(e) { tabs.forEach(t => t.classList.remove('active')); e.target.classList.add('active'); exploreView.classList.add('hidden'); campaignView.classList.add('hidden'); if (e.target.dataset.tab === 'explorar') { exploreView.classList.remove('hidden'); if (influencersData.length > 0) { populateTagFilters(); filterInfluencersData(); } } else { campaignView.classList.remove('hidden'); showCampaignView('overview'); } }
-    function showCampaignView(viewName, params = {}) { campaignOverviewView.classList.add('hidden'); campaignDetailView.classList.add('hidden'); if (viewName === 'overview') { renderCampaignOverview(); campaignOverviewView.classList.remove('hidden'); } else { renderCampaignDetail(params.id); campaignDetailView.classList.remove('hidden'); } }
-    
-    function renderCampaignOverview() {
-        if (campaignsData.length === 0) { campaignOverviewContent.innerHTML = '<p>No se encontraron datos de campañas.</p>'; return; }
-        const sortKey = campaignSortFilter.value;
-        let sortedData = [...campaignsData].sort((a,b) => (sortKey === 'cpc' ? (a[sortKey] || Infinity) - (b[sortKey] || Infinity) : (b[sortKey] || 0) - (a[sortKey] || 0)));
-        const podium = sortedData.slice(0, 3), rest = sortedData.slice(3);
-        const getMetricDisplay = (c, key) => { const val = c[key] || 0; if (key === 'budget') return val.toLocaleString('es-ES', {style:'currency', currency:'EUR'}); if (key === 'cpc') return val.toFixed(2) + '€'; if (key === 'clickRate') return val.toFixed(2) + '%'; if (key === 'performance') return val.toFixed(2) + ' pts'; return val.toLocaleString(); };
-        const podiumHTML = `<div class="podium-container">${podium.map((c, i) => `<div class="podium-item podium-item--${i+1}" data-id="${c.id}" style="background-image: url('${c.imageUrl}');"><div class="podium-rank">${i+1}</div><div class="podium-name">${c.name}</div><div class="podium-metric">${getMetricDisplay(c, sortKey)}</div></div>`).join('')}</div>`;
-        const listHTML = rest.length > 0 ? `<div class="campaign-list-container"><h3>Resto de campañas</h3>${rest.map((c, i) => `<div class="campaign-list-item" data-id="${c.id}"><img src="${c.imageUrl}" alt="${c.name}" class="campaign-list-thumbnail"><div class="info"><h4>${c.name}</h4><p class="text-secondary">${c.type}</p></div><span class="metric">${getMetricDisplay(c, sortKey)}</span></div>`).join('')}</div>` : '';
-        campaignOverviewContent.innerHTML = podiumHTML + listHTML;
-        document.querySelectorAll('.podium-item, .campaign-list-item').forEach(el => { el.onclick = () => showCampaignView('detail', { id: el.dataset.id }); });
+    function initApp() { 
+        loader.classList.add('hidden'); 
+        mainContent.classList.remove('hidden'); 
+        searchBtn.removeAttribute('disabled'); 
+        
+        // Pestaña por defecto: Campañas
+        document.querySelector('.tab[data-tab="campanas"]').click();
+    }
+
+    // 2. NAVEGACIÓN
+    function handleTabClick(e) { 
+        tabs.forEach(t => t.classList.remove('active')); 
+        e.target.classList.add('active'); 
+        
+        exploreView.classList.add('hidden'); 
+        campaignView.classList.add('hidden'); 
+        myInfluencersView.classList.add('hidden');
+
+        const tabName = e.target.dataset.tab;
+
+        if (tabName === 'explorar') { 
+            exploreView.classList.remove('hidden'); 
+            populateTagFilters(); 
+            filterInfluencersData(); 
+        } else if (tabName === 'campanas') { 
+            campaignView.classList.remove('hidden'); 
+            showCampaignView('overview'); 
+        } else if (tabName === 'mis-influencers') {
+            myInfluencersView.classList.remove('hidden');
+            renderMyInfluencers();
+        }
+    }
+
+    function showCampaignView(viewName, params = {}) { 
+        campaignOverviewView.classList.add('hidden'); 
+        campaignDetailView.classList.add('hidden'); 
+        if (viewName === 'overview') { 
+            renderCampaignOverview(); 
+            campaignOverviewView.classList.remove('hidden'); 
+        } else { 
+            renderCampaignDetail(params.id); 
+            campaignDetailView.classList.remove('hidden'); 
+        } 
     }
     
     function destroyCharts() { for (const chartId in charts) { if (charts[chartId]) { charts[chartId].destroy(); delete charts[chartId]; } } }
 
+    // 3. LOGICA CAMPAÑAS (MEJORADA)
+    function renderCampaignOverview() {
+        if (campaignsData.length === 0) return;
+        
+        // Calcular Totales Globales
+        const totalSpent = campaignsData.reduce((acc, c) => acc + c.budget, 0);
+        const totalTickets = campaignsData.reduce((acc, c) => acc + c.ticketsSold, 0);
+        const totalReach = campaignsData.reduce((acc, c) => acc + c.reach, 0);
+        const globalCPA = totalTickets > 0 ? totalSpent / totalTickets : 0;
+
+        document.getElementById('global-spent').innerText = totalSpent.toLocaleString('es-ES', {style:'currency', currency:'EUR'});
+        document.getElementById('global-tickets').innerText = totalTickets.toLocaleString();
+        document.getElementById('global-reach').innerText = totalReach.toLocaleString();
+        document.getElementById('global-cpa').innerText = globalCPA.toFixed(2) + '€';
+
+        // Gráfico Comparativo Global
+        destroyCharts();
+        const ctxGlobal = document.getElementById('all-campaigns-chart').getContext('2d');
+        charts['global'] = new Chart(ctxGlobal, {
+            type: 'bar',
+            data: {
+                labels: campaignsData.map(c => c.name),
+                datasets: [
+                    { label: 'Entradas Vendidas', data: campaignsData.map(c => c.ticketsSold), backgroundColor: '#22c55e', yAxisID: 'y' },
+                    { label: 'Interacciones', data: campaignsData.map(c => c.interactions), backgroundColor: '#ef4444', yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { ticks: {color: '#aaa'} },
+                    y: { type: 'linear', display: true, position: 'left', ticks: {color: '#22c55e'} },
+                    y1: { type: 'linear', display: true, position: 'right', grid: {drawOnChartArea: false}, ticks: {color: '#ef4444'} }
+                },
+                plugins: { legend: {labels:{color:'#fff'}} }
+            }
+        });
+
+        // Ordenar Lista
+        const sortKey = campaignSortFilter.value;
+        let sortedData = [...campaignsData];
+        
+        if (sortKey === 'cpa') {
+            // Para CPA, menor es mejor (pero excluimos 0/infinito si no hubo ventas para ponerlos al final)
+            sortedData.sort((a,b) => {
+                const valA = a.cpa === 0 ? 999999 : a.cpa;
+                const valB = b.cpa === 0 ? 999999 : b.cpa;
+                return valA - valB;
+            });
+        } else {
+            // Para el resto, mayor es mejor
+            sortedData.sort((a,b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+        }
+
+        const podium = sortedData.slice(0, 3);
+        const rest = sortedData.slice(3);
+        
+        const getMetricDisplay = (c, key) => { 
+            if (key === 'ticketsSold') return c.ticketsSold + ' Tickets';
+            if (key === 'cpa') return c.cpa > 0 ? c.cpa.toFixed(2) + '€ / Ticket' : 'N/A';
+            if (key === 'reach') return (c.reach/1000).toFixed(1) + 'k Alcance';
+            if (key === 'clickRate') return c.clickRate.toFixed(2) + '% CTR';
+            if (key === 'interactions') return c.interactions.toLocaleString() + ' Int.';
+            return c[key]; 
+        };
+
+        const podiumHTML = `<div class="podium-container">${podium.map((c, i) => `
+            <div class="podium-item podium-item--${i+1}" data-id="${c.id}" style="background-image: url('${c.imageUrl}');">
+                <div class="podium-rank">${i+1}</div>
+                <div class="podium-name">${c.name}</div>
+                <div class="podium-metric">${getMetricDisplay(c, sortKey)}</div>
+            </div>`).join('')}</div>`;
+
+        const listHTML = rest.length > 0 ? `<div class="campaign-list-container">
+            <h3>Resto de campañas</h3>
+            ${rest.map(c => `
+            <div class="campaign-list-item" data-id="${c.id}">
+                <img src="${c.imageUrl}" alt="${c.name}" class="campaign-list-thumbnail">
+                <div class="info">
+                    <h4>${c.name}</h4>
+                    <p class="text-secondary">${c.type} • ${c.goal}</p>
+                </div>
+                <div class="metric-group">
+                    <div class="metric-col"><span class="metric-val">${c.ticketsSold}</span><span class="metric-lbl">Tickets</span></div>
+                    <div class="metric-col"><span class="metric-val">${c.cpa.toFixed(2)}€</span><span class="metric-lbl">CPA</span></div>
+                    <div class="metric-col"><span class="metric-val">${c.clickRate}%</span><span class="metric-lbl">CTR</span></div>
+                </div>
+            </div>`).join('')}</div>` : '';
+
+        campaignOverviewContent.innerHTML = podiumHTML + listHTML;
+        document.querySelectorAll('.podium-item, .campaign-list-item').forEach(el => { el.onclick = () => showCampaignView('detail', { id: el.dataset.id }); });
+    }
+
     function renderCampaignDetail(id) {
         destroyCharts();
         const c = campaignsData.find(c => c.id == id);
-        if (!c) { campaignDetailView.innerHTML = `<p>Campaña no encontrada.</p>`; return; }
-        
+        if (!c) return;
+
+        // Evaluar rendimiento para colores
+        const isGoodCPA = c.cpa < 2.0; 
+        const cpaClass = isGoodCPA ? 'good' : (c.cpa < 5 ? 'neutral' : 'bad');
+        const statusText = isGoodCPA ? 'Éxito' : 'Revisar';
+        const statusClass = isGoodCPA ? '' : 'bad';
+
         campaignDetailView.innerHTML = `
             <div class="campaign-detail-container">
-                <div class="campaign-header"><div><h2 class="campaign-detail-header-title">${c.name}</h2><p class="text-secondary">${c.description}</p></div><button class="btn btn-secondary" onclick="showCampaignView('overview')">← Volver al Ranking</button></div>
+                <div class="campaign-header">
+                   <button class="btn btn-secondary" onclick="showCampaignView('overview')">← Volver al Ranking</button>
+                </div>
+                
+                <!-- HERO SECTION -->
+                <div class="campaign-detail-hero" style="background-image: url('${c.imageUrl}');">
+                    <div class="campaign-hero-content">
+                        <div class="campaign-hero-title">
+                            <h2>${c.name}</h2>
+                            <p>${c.description}</p>
+                        </div>
+                        <div class="campaign-status-badge ${statusClass}">
+                            Estado: ${statusText}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="campaign-detail-main-grid">
                     <div class="charts-section">
-                        <div class="chart-wrapper"><canvas id="campaign-overview-chart"></canvas></div>
-                        <div class="chart-wrapper"><canvas id="engagement-funnel-chart"></canvas></div>
+                        <!-- KPI GRID PRINCIPAL -->
+                        <div class="kpi-grid">
+                            <div class="kpi-card-small">
+                                <div class="kpi-title"><span class="icon">🎟️</span>Tickets Vendidos</div>
+                                <div class="kpi-value">${c.ticketsSold}</div>
+                                <div class="kpi-eval good">Conversión Final</div>
+                            </div>
+                             <div class="kpi-card-small">
+                                <div class="kpi-title"><span class="icon">💸</span>Coste por Ticket (CPA)</div>
+                                <div class="kpi-value">${c.cpa.toFixed(2)}€</div>
+                                <div class="kpi-eval ${cpaClass}">${cpaClass === 'good' ? 'Eficiente' : 'Alto coste'}</div>
+                            </div>
+                            <div class="kpi-card-small">
+                                <div class="kpi-title"><span class="icon">🖱️</span>Clicks Totales</div>
+                                <div class="kpi-value">${c.clicks.toLocaleString()}</div>
+                                <div class="kpi-eval neutral">CTR: ${c.clickRate.toFixed(2)}%</div>
+                            </div>
+                            <div class="kpi-card-small">
+                                <div class="kpi-title"><span class="icon">👁️</span>Visualizaciones</div>
+                                <div class="kpi-value">${c.impressions.toLocaleString()}</div>
+                                <div class="kpi-eval">Alcance: ${c.reach.toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        <div class="chart-wrapper"><canvas id="funnel-chart"></canvas></div>
                     </div>
-                    <div class="kpis-section">
-                        <div class="kpi-card-hero">
-                            <div class="kpi-title">Resultado Principal</div>
-                            <div class="kpi-value">${(c.ticketsSold || 0).toLocaleString()}</div>
-                            <div class="kpi-subtitle">Tickets Vendidos</div>
+                    
+                    <div class="sidebar-section">
+                        <div class="kpi-card-small" style="margin-bottom:20px">
+                             <div class="kpi-title">Inversión Total</div>
+                             <div class="kpi-value" style="color:var(--primary)">${c.budget.toLocaleString('es-ES',{style:'currency',currency:'EUR'})}</div>
+                             <div class="text-secondary" style="font-size:0.8rem;margin-top:5px">
+                                ${c.daysActive} días activos (${c.spentPerDay.toFixed(2)}€/día)
+                             </div>
                         </div>
-                        <h3>Métricas de Eficiencia</h3>
-                        <div class="kpi-grid">
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">💰</span>CPC</div><div class="kpi-value">${c.cpc.toFixed(2)}€</div></div>
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">📢</span>CPM</div><div class="kpi-value">${c.cpm.toFixed(2)}€</div></div>
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">🎯</span>CTR</div><div class="kpi-value">${c.clickRate.toFixed(2)}%</div></div>
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">⏱️</span>Retención</div><div class="kpi-value">${c.retention.toFixed(2)}%</div></div>
-                        </div>
-                        <h3>Actividad y Alcance</h3>
-                        <div class="kpi-grid">
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">❤️</span>Reacciones</div><div class="kpi-value">${c.reactions.toLocaleString()}</div></div>
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">🔁</span>Frecuencia</div><div class="kpi-value">${c.frequency.toFixed(2)}</div></div>
-                        </div>
-                         <h3>Configuración</h3>
-                         <div class="kpi-grid">
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">🏁</span>Objetivo</div><div class="kpi-value" style="font-size:1.2rem;">${c.goal}</div></div>
-                            <div class="kpi-card-small"><div class="kpi-title"><span class="icon">📍</span>Segmentación</div><div class="kpi-value" style="font-size:1.2rem;">${c.range}</div></div>
-                        </div>
+                        
+                        <h3 style="color:var(--text);margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:5px">Engagement</h3>
+                         <div class="kpi-grid" style="grid-template-columns:1fr;">
+                            <div class="kpi-card-small">
+                                <div class="stat-row"><span>Reacciones</span> <span>${c.reactions}</span></div>
+                                <div class="stat-row" style="margin-top:10px"><span>Comentarios</span> <span>${c.interactions - c.reactions}</span></div>
+                                <div class="stat-row" style="margin-top:10px"><span>Retención</span> <span>${c.retention}%</span></div>
+                            </div>
+                         </div>
+                         
+                         <h3 style="color:var(--text);margin-top:20px;margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:5px">Segmentación</h3>
+                         <div style="background:var(--bg-input);padding:15px;border-radius:10px;">
+                            <p style="margin-bottom:5px"><strong>Objetivo:</strong> ${c.goal}</p>
+                            <p><strong>Rango:</strong> ${c.range}</p>
+                         </div>
                     </div>
                 </div>
             </div>`;
         
-        createCampaignOverviewChart('campaign-overview-chart', c);
-        createEngagementFunnelChart('engagement-funnel-chart', c);
+        // Gráfico de Embudo
+        const ctxFunnel = document.getElementById('funnel-chart').getContext('2d');
+        charts['funnel'] = new Chart(ctxFunnel, {
+            type: 'bar',
+            data: {
+                labels: ['Impresiones', 'Alcance', 'Clics', 'Tickets'],
+                datasets: [{
+                    label: 'Conversión',
+                    data: [c.impressions, c.reach, c.clicks, c.ticketsSold],
+                    backgroundColor: ['#7f1d1d', '#b91c1c', '#ef4444', '#22c55e']
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: {display:false}, title: {display:true, text:'Embudo de Conversión', color:'#aaa'} },
+                scales: { x: {ticks:{color:'#aaa'}}, y: {ticks:{color:'#fff'}} }
+            }
+        });
+    }
+
+    // 4. LOGICA MIS INFLUENCERS (AGREGACIÓN)
+    function renderMyInfluencers() {
+        const grid = document.getElementById('my-influencers-grid');
+        grid.innerHTML = '';
+
+        if (myInfluencersData.length === 0) {
+            grid.innerHTML = '<p>No hay datos en misinflus.csv</p>';
+            return;
+        }
+
+        // Agrupar por ID
+        const grouped = {};
+        
+        myInfluencersData.forEach(row => {
+            // Ajustar claves según CSV (headers pueden variar ligeramente)
+            // Asumimos: "ID influencer", "Influencer", "Plataforma", "Impresiones", etc.
+            const id = row['ID influencer'];
+            if (!id) return;
+
+            if (!grouped[id]) {
+                grouped[id] = {
+                    id: id,
+                    name: row['Influencer'],
+                    platform: row['Plataforma'], // Tomamos la última o primera plataforma
+                    image: row['Imagen'],
+                    impressions: 0, likes: 0, comments: 0, reach: 0, shares: 0,
+                    men: 0, women: 0,
+                    count: 0
+                };
+            }
+
+            // Sumatorios
+            grouped[id].impressions += (row['Impresiones'] || 0);
+            grouped[id].likes += (row['Likes'] || 0);
+            grouped[id].comments += (row['Comentarios'] || 0);
+            grouped[id].reach += (row['Cuentas Alcanzadas'] || 0);
+            grouped[id].shares += (row['Veces compartidas'] || 0);
+
+            // Promedios demográficos (simple)
+            grouped[id].men += (row['Hombres'] || 0);
+            grouped[id].women += (row['Mujeres'] || 0);
+            grouped[id].count++;
+        });
+
+        Object.values(grouped).forEach(influ => {
+            // Calcular promedios
+            const avgMen = Math.round(influ.men / influ.count);
+            const avgWomen = Math.round(influ.women / influ.count);
+            const imageUrl = influ.image ? `images/${influ.image}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(influ.name)}&background=random`;
+
+            const card = document.createElement('div');
+            card.className = 'my-influencer-card';
+            card.innerHTML = `
+                <div class="my-influencer-header">
+                    <img src="${imageUrl}" class="my-influencer-avatar" alt="${influ.name}">
+                    <div>
+                        <h3 style="margin:0">${influ.name}</h3>
+                        <span class="tag" style="background:#333;padding:2px 8px;border-radius:4px;font-size:0.8rem">${influ.platform}</span>
+                    </div>
+                </div>
+                <div class="my-influencer-stats">
+                    <div class="stat-row"><span>Impresiones</span> <span>${influ.impressions.toLocaleString()}</span></div>
+                    <div class="stat-row"><span>Alcance</span> <span>${influ.reach.toLocaleString()}</span></div>
+                    <div class="stat-row"><span>Likes</span> <span>${influ.likes.toLocaleString()}</span></div>
+                    <div class="stat-row"><span>Comentarios</span> <span>${influ.comments.toLocaleString()}</span></div>
+                </div>
+                <div style="padding: 0 20px 20px 20px;">
+                    <p style="font-size:0.8rem;color:#aaa;margin-bottom:5px">Audiencia: Hombres ${avgMen}% / Mujeres ${avgWomen}%</p>
+                    <div class="demographics-bar">
+                        <div class="demographics-fill" style="width:${avgMen}%;background:#3b82f6"></div>
+                        <div class="demographics-fill" style="width:${avgWomen}%;background:#ec4899"></div>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // 5. LOGICA EXPLORAR (Antigua, mantenida)
+    let filteredInfluencers = []; 
+    function populateTagFilters(){
+        const t1=document.getElementById('tag1-filter'),t2=document.getElementById('tag2-filter');
+        if(t1.options.length > 1) return; // Evitar duplicar si ya se cargó
+        const n=influencersData.flatMap(i=>(!i.niche||typeof i.niche!=='string')?[]:i.niche.split('|').map(s=>s.trim()));
+        [...new Set(n.filter(Boolean))].sort().forEach(tag=>{t1.appendChild(new Option(tag,tag));t2.appendChild(new Option(tag,tag))})
     }
     
-    function createCampaignOverviewChart(canvasId, data) { const ctx = document.getElementById(canvasId).getContext('2d'); charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: ['Visualizaciones', 'Cuentas alcanzadas', 'Clics en el enlace'], datasets: [{ label: 'Valor', data: [data.impressions, data.reach, data.clicks], backgroundColor: ['#7f1d1d', '#ef4444', '#f59e0b'], }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Visión General', color: '#aaa' } }, scales: { y: { ticks: { color: '#aaa' }, grid: { color: '#444' } }, x: { ticks: { color: '#aaa' }, grid: { color: 'transparent' } } } } }); }
-    function createEngagementFunnelChart(canvasId, data) { const ctx = document.getElementById(canvasId).getContext('2d'); charts[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: ['Impresiones', 'Vistas (3s)', 'Clics', 'Interacciones'], datasets: [{ label: 'Usuarios', data: [data.impressions, data.views3s, data.clicks, data.interactions], backgroundColor: ['#4c1d95', '#6d28d9', '#8b5cf6', '#a78bfa'], }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Embudo de Engagement', color: '#aaa' } }, scales: { y: { ticks: { color: '#aaa' }, grid: { color: 'transparent' } }, x: { beginAtZero: true, ticks: { color: '#aaa' }, grid: { color: '#444' } } } } }); }
-    let filteredInfluencers = []; function populateTagFilters(){const t1=document.getElementById('tag1-filter'),t2=document.getElementById('tag2-filter');t1.length=1;t2.length=1;const n=influencersData.flatMap(i=>(!i.niche||typeof i.niche!=='string')?[]:i.niche.split('|').map(s=>s.trim()));[...new Set(n.filter(Boolean))].sort().forEach(tag=>{t1.appendChild(new Option(tag,tag));t2.appendChild(new Option(tag,tag))})}
-    function filterInfluencersData(){loader.classList.remove('hidden');resultsContainer.classList.add('hidden');setTimeout(()=>{const p=document.getElementById('platform-filter').value,f=document.getElementById('followers-filter').value,t1=document.getElementById('tag1-filter').value,t2=document.getElementById('tag2-filter').value,term=document.getElementById('search-input').value.toLowerCase();filteredInfluencers=influencersData.filter(i=>{const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()):[];if(p!=='Todos'&&i.platform!==p)return false;if(f==='<100K'&&i.followers>=1e5)return false;if(f==='100K-500K'&&(i.followers<1e5||i.followers>5e5))return false;if(f==='>500K'&&i.followers<=5e5)return false;if(t1!=='Todos'&&!n.includes(t1))return false;if(t2!=='Todos'&&!n.includes(t2))return false;if(term&&!i.name.toLowerCase().includes(term)&&!n.some(s=>s.toLowerCase().includes(term)))return false;return true});displayInfluencerResults();loader.classList.add('hidden');resultsContainer.classList.remove('hidden')},300)}
-    function displayInfluencerResults(){resultsContainer.innerHTML='';if(filteredInfluencers.length===0){resultsContainer.innerHTML='<p>No se encontraron influencers.</p>';return}const calcImpact=i=>((i.likesAvg||0)+(i.commentsAvg||0)*1.5)/(i.followers||1);const impacts=filteredInfluencers.map(calcImpact);const maxImpact=Math.max(...impacts)||1;filteredInfluencers.forEach(i=>{const rawImpact=calcImpact(i);const impact=((rawImpact/maxImpact)*100).toFixed(2);i.impact=impact;const card=document.createElement('div');card.className='result-card';card.innerHTML=`<h3>${i.name}</h3><p class="text-secondary">${i.platform}</p><p>👥 Seguidores: ${(i.followers||0).toLocaleString()}</p><p>❤️ Likes: ${(i.likesAvg||0).toLocaleString()}</p><p>💬 Comentarios: ${(i.commentsAvg||0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${impact}%</p>`;card.addEventListener('click',()=>{displayInfluencerDetail(i)});resultsContainer.appendChild(card)})}
-    function displayInfluencerDetail(i){destroyCharts();resultsContainer.classList.add('hidden');detailContainer.classList.remove('hidden');const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()).filter(Boolean):[];const p=[{name:'Instagram',value:40},{name:'YouTube',value:30},{name:'TikTok',value:20},{name:'Facebook',value:10}];const a=[{range:'<12',value:3},{range:'13-17',value:12},{range:'18-24',value:25},{range:'25-34',value:30},{range:'35-44',value:15},{range:'45-54',value:10},{range:'55-64',value:3},{range:'>65',value:2}];const g=[{name:'Hombres',value:55},{name:'Mujeres',value:45}];detailContainer.innerHTML=`<div class="detail-header"><img src="https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=ef4444&color=fff&size=120" class="avatar" alt="${i.name}"><div><h2>${i.name}</h2><p class="text-secondary">${i.platform} • Seguidores: ${(i.followers||0).toLocaleString()}</p><p>❤️ Likes: ${(i.likesAvg||0).toLocaleString()} • 💬 Comentarios: ${(i.commentsAvg||0).toLocaleString()}</p><p class="text-impact">📊 Impacto: ${i.impact}%</p></div></div><h4 style="margin-top:15px;font-size:.9rem">Nichos</h4><div class="tags">${n.map(t=>`<span class="tag">${t}</span>`).join('')}</div><button class="back-btn" id="back-btn">← Volver</button><div class="charts-row"><div class="chart-container"><div class="chart-title">Distribución por plataforma</div><canvas id="platform-chart"></canvas></div><div class="chart-container"><div class="chart-title">Distribución por edad</div><canvas id="age-chart"></canvas></div></div><div class="chart-container" style="margin-top:20px"><div class="chart-title">Distribución por género</div><canvas id="gender-chart"></canvas></div>`;document.getElementById('back-btn').onclick=()=>{detailContainer.classList.add('hidden');resultsContainer.classList.remove('hidden')};charts['platform-chart']=new Chart(document.getElementById('platform-chart'),{type:'bar',data:{labels:p.map(d=>d.name),datasets:[{data:p.map(d=>d.value),backgroundColor:'rgba(239,68,68,0.8)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#aaa'},grid:{color:'#444'}},x:{ticks:{color:'#aaa'},grid:{color:'#444'}}}}});charts['age-chart']=new Chart(document.getElementById('age-chart'),{type:'bar',data:{labels:a.map(d=>d.range),datasets:[{data:a.map(d=>d.value),backgroundColor:'rgba(59,130,246,0.8)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#aaa'},grid:{color:'#444'}},x:{ticks:{color:'#aaa'},grid:{color:'#444'}}}}});charts['gender-chart']=new Chart(document.getElementById('gender-chart'),{type:'pie',data:{labels:g.map(d=>d.name),datasets:[{data:g.map(d=>d.value),backgroundColor:['rgba(239,68,68,0.8)','rgba(59,130,246,0.8)']}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#aaa'}}}}})}
+    function filterInfluencersData(){
+        loader.classList.remove('hidden'); resultsContainer.classList.add('hidden');
+        setTimeout(()=>{
+            const p=document.getElementById('platform-filter').value,f=document.getElementById('followers-filter').value,t1=document.getElementById('tag1-filter').value,t2=document.getElementById('tag2-filter').value,term=document.getElementById('search-input').value.toLowerCase();
+            filteredInfluencers=influencersData.filter(i=>{
+                const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()):[];
+                if(p!=='Todos'&&i.platform!==p)return false;
+                if(f==='<100K'&&i.followers>=1e5)return false;
+                if(f==='100K-500K'&&(i.followers<1e5||i.followers>5e5))return false;
+                if(f==='>500K'&&i.followers<=5e5)return false;
+                if(t1!=='Todos'&&!n.includes(t1))return false;
+                if(t2!=='Todos'&&!n.includes(t2))return false;
+                if(term&&!i.name.toLowerCase().includes(term)&&!n.some(s=>s.toLowerCase().includes(term)))return false;
+                return true
+            });
+            displayInfluencerResults();loader.classList.add('hidden');resultsContainer.classList.remove('hidden')
+        },300)
+    }
+
+    function displayInfluencerResults(){
+        resultsContainer.innerHTML='';
+        if(filteredInfluencers.length===0){resultsContainer.innerHTML='<p>No se encontraron influencers.</p>';return}
+        
+        filteredInfluencers.forEach(i=>{
+            const impactRaw = ((i.likesAvg||0)+(i.commentsAvg||0)*1.5)/(i.followers||1)*100;
+            const impact = impactRaw > 100 ? 100 : impactRaw.toFixed(2); // Normalizar algo visual
+            
+            const card=document.createElement('div');
+            card.className='result-card';
+            card.innerHTML=`<h3>${i.name}</h3><p class="text-secondary">${i.platform}</p><p>👥 ${(i.followers||0).toLocaleString()}</p><p>❤️ ${(i.likesAvg||0).toLocaleString()}</p><p class="text-impact">⚡ Engagement: ${impact}%</p>`;
+            card.addEventListener('click',()=>{displayInfluencerDetail(i)});
+            resultsContainer.appendChild(card)
+        })
+    }
+
+    function displayInfluencerDetail(i){
+        destroyCharts();
+        resultsContainer.classList.add('hidden');
+        detailContainer.classList.remove('hidden');
+        const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()).filter(Boolean):[];
+        
+        detailContainer.innerHTML=`
+            <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px">
+                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=ef4444&color=fff&size=120" style="border-radius:50%" alt="${i.name}">
+                <div><h2>${i.name}</h2><p class="text-secondary">${i.platform}</p></div>
+            </div>
+            <div style="margin-bottom:20px">${n.map(t=>`<span style="background:#333;padding:5px 10px;border-radius:15px;margin-right:5px;font-size:0.8rem">${t}</span>`).join('')}</div>
+            <button class="back-btn btn btn-secondary" id="back-explore-btn">← Volver</button>
+            <div style="margin-top:20px;height:300px"><canvas id="influencer-chart"></canvas></div>
+        `;
+        
+        document.getElementById('back-explore-btn').onclick=()=>{detailContainer.classList.add('hidden');resultsContainer.classList.remove('hidden')};
+        
+        new Chart(document.getElementById('influencer-chart'),{
+            type:'bar',
+            data:{labels:['Seguidores','Likes Avg','Comentarios Avg'],datasets:[{label:'Métricas',data:[i.followers,i.likesAvg,i.commentsAvg],backgroundColor:['#ef4444','#f59e0b','#3b82f6']}]},
+            options:{responsive:true,maintainAspectRatio:false,scales:{y:{type:'logarithmic'}}} // Logarítmico porque followers suele ser mucho mayor
+        });
+    }
     
-    document.addEventListener('DOMContentLoaded', () => { tabs.forEach(t => t.addEventListener('click', handleTabClick)); searchBtn.onclick = filterInfluencersData; campaignSortFilter.onchange = renderCampaignOverview; reloadDataBtn.onclick = loadData; loadData(); });
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', () => { 
+        tabs.forEach(t => t.addEventListener('click', handleTabClick)); 
+        searchBtn.onclick = filterInfluencersData; 
+        campaignSortFilter.onchange = renderCampaignOverview; 
+        document.getElementById('reload-data-btn').onclick = loadData;
+        loadData(); 
+    });
   </script>
 </body>
 </html>
+
