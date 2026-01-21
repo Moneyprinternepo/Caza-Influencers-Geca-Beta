@@ -1,0 +1,146 @@
+:root{--primary:#ef4444;--primary-dark:#7f1d1d;--bg-dark:#111;--bg-card:#1f1f1f;--bg-input:#2d2d2d;--text:#fff;--text-secondary:#aaa;--border:#444;--success:#22c55e;--warning:#f59e0b;--danger:#dc2626;--podium-gold:#ffd700;--podium-silver:#c0c0c0;--podium-bronze:#cd7f32}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:var(--bg-dark);color:var(--text);padding:20px}
+.container{max-width:1200px;margin:0 auto}
+header{text-align:center;margin-bottom:30px}
+h1{font-size:3rem;text-transform:uppercase;letter-spacing:3px;background:linear-gradient(to right,var(--primary),var(--primary-dark));-webkit-background-clip:text;color:transparent;margin-bottom:20px}
+.logos{display:flex;justify-content:space-between;align-items:center}
+.logos img{height:60px}
+
+/* TABS */
+.tabs{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+.tab{padding:10px 20px;border-radius:5px;background:var(--bg-card);border:none;color:var(--text);cursor:pointer;transition:background .3s;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
+.tab:hover{background:#333}
+.tab.active{background:var(--primary);color:white}
+
+/* SUB-TABS (Para Mis Influencers) */
+.sub-tabs{display:flex;justify-content:start;gap:10px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;}
+.sub-tab{padding:8px 16px;border-radius:20px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;font-size:0.9rem;}
+.sub-tab:hover{background:var(--bg-input);color:var(--text);}
+.sub-tab.active{background:var(--text);color:var(--bg-dark);border-color:var(--text);font-weight:bold;}
+
+/* FILTROS Y INPUTS */
+.filter-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:15px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border);margin-bottom:20px}
+select,input[type="text"]{width:100%;padding:10px;border-radius:5px;background:var(--bg-input);border:1px solid var(--border);color:var(--text)}
+.btn{background:linear-gradient(to right,var(--primary),var(--primary-dark));color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;font-weight:bold;text-decoration:none;display:inline-block;text-align:center;transition:transform 0.1s}
+.btn:active{transform:scale(0.98)}
+.btn-secondary{background:var(--bg-card);border:1px solid var(--border)}
+
+/* CARDS GENERALES */
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.result-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:15px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.result-card:hover{transform:translateY(-5px);border-color:var(--primary);box-shadow:0 5px 15px rgba(239,68,68,0.2)}
+.result-card h3{font-size:1.2rem;margin-bottom:5px;color:var(--primary)}
+.text-secondary{color:var(--text-secondary);font-size:0.9rem}
+.text-impact{color:var(--success);font-weight:bold}
+.hidden{display:none!important}
+
+/* LOADER */
+.loader{border:5px solid var(--bg-input);border-top:5px solid var(--primary);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:50px auto}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+
+/* --- CAMPAIGNS STYLES --- */
+.global-dashboard{display:grid;grid-template-columns:repeat(3, 1fr);gap:15px;margin-bottom:30px}
+@media(max-width: 768px) { .global-dashboard { grid-template-columns: 1fr 1fr; } }
+
+.global-kpi-card{background:var(--bg-card);padding:20px;border-radius:10px;border-left:4px solid var(--primary);display:flex;flex-direction:column;justify-content:center}
+.global-kpi-card span.label{text-transform:uppercase;font-size:0.8rem;color:var(--text-secondary);margin-bottom:5px}
+.global-kpi-card span.value{font-size:1.6rem;font-weight:bold}
+
+.podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px;min-height:320px}
+.podium-item{border-radius:10px 10px 0 0;padding:20px;text-align:center;transition:all .3s ease;cursor:pointer;position:relative;width:30%;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1000px rgba(0,0,0,0.6)}
+.podium-item:hover{box-shadow:inset 0 0 0 1000px rgba(0,0,0,0.3);transform:translateY(-10px)}
+.podium-item--1{order:2;height:280px;border-bottom:6px solid var(--podium-gold);transform:scale(1.05);z-index:2}
+.podium-item--2{order:1;height:240px;border-bottom:6px solid var(--podium-silver)}
+.podium-item--3{order:3;height:220px;border-bottom:6px solid var(--podium-bronze)}
+.podium-rank{font-size:4rem;font-weight:900;line-height:1;margin-bottom:10px;text-shadow:0 2px 5px rgba(0,0,0,0.8)}
+.podium-item--1 .podium-rank{color:var(--podium-gold)}
+.podium-item--2 .podium-rank{color:var(--podium-silver)}
+.podium-item--3 .podium-rank{color:var(--podium-bronze)}
+.podium-name{font-size:1.2rem;font-weight:bold;margin-bottom:8px;text-shadow:0 1px 3px black}
+.podium-metric{font-size:1.1rem;color:var(--success);background:rgba(0,0,0,0.8);padding:2px 8px;border-radius:4px;display:inline-block}
+
+.campaign-list-item{display:flex;align-items:center;background:var(--bg-card);padding:15px;border-radius:8px;margin-bottom:10px;cursor:pointer;transition:background .2s;border-left:4px solid transparent}
+.campaign-list-item:hover{background:#2a2a2a;border-left-color:var(--primary)}
+.campaign-list-thumbnail{width:60px;height:60px;border-radius:8px;object-fit:cover;margin-right:20px}
+.campaign-list-item .info{flex-grow:1}
+.campaign-list-item .info h4{font-size:1.2rem;margin:0}
+.campaign-list-item .metric-group{display:flex;gap:20px;text-align:right}
+.campaign-list-item .metric-col{display:flex;flex-direction:column}
+.campaign-list-item .metric-val{font-weight:bold;color:#fff}
+.campaign-list-item .metric-lbl{font-size:0.7rem;color:var(--text-secondary)}
+
+.campaign-detail-hero{position:relative;height:350px;border-radius:15px;overflow:hidden;margin-bottom:20px;display:flex;align-items:flex-end;background-color:var(--bg-card);background-size:cover;background-position:center}
+.campaign-detail-hero::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(to bottom,rgba(0,0,0,0.1),rgba(0,0,0,0.9))}
+.campaign-hero-content{position:relative;z-index:2;padding:30px;width:100%;display:flex;justify-content:space-between;align-items:flex-end}
+.campaign-hero-title h2{font-size:3rem;margin:0;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,0.8)}
+.campaign-hero-title p{font-size:1.2rem;color:#ddd;margin-top:5px;text-shadow:0 1px 2px rgba(0,0,0,0.8)}
+.campaign-status-badge{padding:8px 16px;border-radius:20px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;backdrop-filter:blur(5px);background:rgba(34,197,94,0.2);color:var(--success);border:1px solid var(--success)}
+.campaign-status-badge.bad{background:rgba(220,38,38,0.2);color:var(--danger);border:1px solid var(--danger)}
+
+.campaign-detail-main-grid{display:grid;grid-template-columns:2fr 1.2fr;gap:25px}
+.chart-wrapper{background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border);height:320px;position:relative;margin-bottom:20px}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px}
+.kpi-card-small{background:var(--bg-card);padding:15px;border-radius:10px;border:1px solid var(--border);transition:transform 0.2s}
+.kpi-card-small:hover{transform:translateY(-2px);border-color:var(--primary)}
+.kpi-card-small .kpi-title{font-size:0.8rem;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;display:flex;align-items:center}
+.kpi-card-small .kpi-value{font-size:1.6rem;font-weight:bold;line-height:1}
+.kpi-eval{font-size:0.8rem;margin-top:5px;font-weight:bold}
+.good{color:var(--success)}.bad{color:var(--danger)}.neutral{color:var(--warning)}
+
+/* --- MIS INFLUENCERS STYLES --- */
+.my-influencer-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+.my-influencer-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+}
+.my-influencer-header {
+    padding: 20px;
+    background: linear-gradient(45deg, var(--bg-input), var(--bg-card));
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 1px solid var(--border);
+}
+.my-influencer-avatar {
+    width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary); object-fit: cover;
+}
+.my-influencer-stats {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; }
+.stat-row span:first-child { color: var(--text-secondary); font-size: 0.9rem; }
+.stat-row span:last-child { font-weight: bold; }
+.demographics-bar { height: 6px; width: 100%; background: #333; border-radius: 3px; margin-top: 5px; overflow: hidden; display: flex; }
+.demographics-fill { height: 100%; }
+
+.content-badge {
+    background: var(--primary);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+/* Detalle de Influencer (Tabla) */
+.content-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+.content-table th { text-align: left; padding: 12px; background: var(--bg-input); color: var(--text-secondary); border-bottom: 2px solid var(--border); cursor: pointer;}
+.content-table td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+.content-table tr:hover { background: #2a2a2a; }
+
+@media(max-width:900px){.campaign-detail-main-grid{grid-template-columns:1fr}.campaign-hero-content{flex-direction:column;align-items:flex-start;gap:15px}}
