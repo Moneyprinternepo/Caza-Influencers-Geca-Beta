@@ -20,6 +20,12 @@
     .tab{padding:10px 20px;border-radius:5px;background:var(--bg-card);border:none;color:var(--text);cursor:pointer;transition:background .3s;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
     .tab:hover{background:#333}
     .tab.active{background:var(--primary);color:white}
+
+    /* SUB-TABS (Para Mis Influencers) */
+    .sub-tabs{display:flex;justify-content:start;gap:10px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;}
+    .sub-tab{padding:8px 16px;border-radius:20px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;font-size:0.9rem;}
+    .sub-tab:hover{background:var(--bg-input);color:var(--text);}
+    .sub-tab.active{background:var(--text);color:var(--bg-dark);border-color:var(--text);font-weight:bold;}
     
     /* FILTROS Y INPUTS */
     .filter-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:15px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border);margin-bottom:20px}
@@ -141,7 +147,7 @@
 
     /* Detalle de Influencer (Tabla) */
     .content-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
-    .content-table th { text-align: left; padding: 12px; background: var(--bg-input); color: var(--text-secondary); border-bottom: 2px solid var(--border); }
+    .content-table th { text-align: left; padding: 12px; background: var(--bg-input); color: var(--text-secondary); border-bottom: 2px solid var(--border); cursor: pointer;}
     .content-table td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); }
     .content-table tr:hover { background: #2a2a2a; }
 
@@ -160,14 +166,14 @@
         </div>
     </header>
     
-    <!-- Pestañas -->
+    <!-- Pestañas Principales -->
     <div class="tabs">
         <button class="tab active" data-tab="campanas">Tus campañas</button>
         <button class="tab" data-tab="mis-influencers">Mis Influencers</button>
         <button class="tab" data-tab="explorar">Explorar</button>
     </div>
 
-    <!-- VISTA: TUS CAMPAÑAS -->
+    <!-- VISTA: TUS CAMPAÑAS (GLOBALES) -->
     <div id="campaign-view">
         <div id="campaign-overview-view">
             <!-- Global KPIs -->
@@ -235,19 +241,27 @@
 
     <!-- VISTA: MIS INFLUENCERS -->
     <div id="my-influencers-view" class="hidden">
+        
+        <!-- Sub Pestañas internas -->
+        <div class="sub-tabs">
+            <button class="sub-tab active" id="sub-tab-influencers">Por Influencer</button>
+            <button class="sub-tab" id="sub-tab-campaigns">Por Campañas</button>
+        </div>
+
+        <!-- 1. SUB-VISTA: POR INFLUENCER -->
         <div id="my-influencers-grid-view">
             <div class="campaign-header">
                 <div>
                     <h2 style="color:var(--primary)">Mis Influencers Activos</h2>
-                    <p class="text-secondary">Rendimiento acumulado de influencers contratados.</p>
+                    <p class="text-secondary">Rendimiento <strong>PROMEDIO</strong> por contenido publicado.</p>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <label class="text-secondary">Ordenar por:</label>
                     <select id="my-influencers-sort" style="width:200px">
-                        <option value="impressions">Impresiones Totales</option>
-                        <option value="reach">Alcance Total</option>
-                        <option value="engagement">Engagement (Likes+Comm)</option>
-                        <option value="count">Nº de Contenidos</option>
+                        <option value="impressions">Prom. Impresiones</option>
+                        <option value="reach">Prom. Alcance</option>
+                        <option value="engagement">Prom. Engagement</option>
+                        <option value="count">Nº de Contenidos (Total)</option>
                         <option value="name">Alfabético</option>
                     </select>
                 </div>
@@ -255,8 +269,23 @@
             <div id="my-influencers-grid" class="results-grid"></div>
         </div>
         
-        <!-- Detalle de Influencer (Desglose de contenidos) -->
+        <!-- Detalle de Influencer -->
         <div id="my-influencer-detail-view" class="hidden"></div>
+
+        <!-- 2. SUB-VISTA: POR CAMPAÑAS (CONTENIDOS) -->
+        <div id="my-campaigns-grid-view" class="hidden">
+            <div class="campaign-header">
+                <div>
+                    <h2 style="color:var(--primary)">Campañas de Influencers</h2>
+                    <p class="text-secondary">Contenidos agrupados por título de campaña.</p>
+                </div>
+            </div>
+            <div id="my-campaigns-grid" class="results-grid"></div>
+        </div>
+
+        <!-- Detalle de Campaña de Influencers -->
+        <div id="my-campaigns-detail-view" class="hidden"></div>
+
     </div>
 
     <!-- VISTA: EXPLORAR -->
@@ -278,7 +307,8 @@
 
   <script>
     let influencersData = [], campaignsData = [], myInfluencersRawData = [];
-    let processedMyInfluencers = []; // Datos procesados y agrupados
+    let processedMyInfluencers = []; 
+    let processedMyCampaigns = []; // Nueva variable para agrupar por campaña
     let charts = {};
 
     // Referencias DOM
@@ -297,10 +327,18 @@
     const campaignOverviewContent = document.getElementById('campaign-overview-content');
     const campaignSortFilter = document.getElementById('campaign-sort-filter');
     
-    // My Influencers Sub-views
+    // My Influencers Sub-views & Elements
+    const subTabInfluencers = document.getElementById('sub-tab-influencers');
+    const subTabCampaigns = document.getElementById('sub-tab-campaigns');
+    
     const myInfluencersGridView = document.getElementById('my-influencers-grid-view');
     const myInfluencerDetailView = document.getElementById('my-influencer-detail-view');
+    const myCampaignsGridView = document.getElementById('my-campaigns-grid-view');
+    const myCampaignsDetailView = document.getElementById('my-campaigns-detail-view');
+
     const myInfluencersSort = document.getElementById('my-influencers-sort');
+    const myInfluencersGrid = document.getElementById('my-influencers-grid');
+    const myCampaignsGrid = document.getElementById('my-campaigns-grid');
 
     // Explore Inputs
     const searchBtn = document.getElementById('search-btn');
@@ -328,19 +366,10 @@
                         const imageFile = c.imageFile || null;
                         const imageUrl = imageFile ? `images/${imageFile}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.Name)}&background=1f1f1f&color=fff&size=128`;
                         
-                        // --- ALGORITMO DE PUNTUACIÓN MULTI-FACTOR ---
-                        // Factor 1: Tickets (Conversión) - Peso MASIVO (x100)
-                        // Factor 2: Clicks (Interés) - Peso ALTO (x2)
-                        // Factor 3: CTR (Calidad creativa) - Peso MEDIO (x50) -> Un 2% de CTR suma 100pts
-                        // Factor 4: Impresiones (Visibilidad) - Peso BAJO (x0.01) -> 1000 impr suman 10pts
-                        
                         let score = (tickets * 100) + (clicks * 2) + (ctr * 50) + (impressions * 0.01);
                         
-                        // Factor 5: Bonus por Eficiencia de Costes (CPC)
                         const cpcCalc = clicks > 0 ? (budget/clicks) : 0;
-                        if(clicks > 0 && cpcCalc < 0.5) {
-                            score += 100; // Bonus por CPC barato (<0.50€)
-                        }
+                        if(clicks > 0 && cpcCalc < 0.5) score += 100;
 
                         return { 
                             id:c.Id, name:c.Name, type:c.Type, budget, 
@@ -368,7 +397,7 @@
         });
 
         Promise.all([p1, p2, p3]).then(() => { 
-            processMyInfluencersData(); // Procesar datos de mis influencers una vez cargados
+            processMyInfluencersData(); // Procesar datos (Influencers y Campañas)
             initApp(); 
         }).catch(error => { 
             console.error(error);
@@ -404,7 +433,29 @@
             showCampaignView('overview'); 
         } else if (tabName === 'mis-influencers') {
             myInfluencersView.classList.remove('hidden');
-            showMyInfluencersView('grid');
+            // Por defecto abrir la sub-pestaña de Influencers
+            handleSubTabClick('influencers');
+        }
+    }
+
+    // Navegación Sub-Pestañas (Mis Influencers)
+    function handleSubTabClick(subTab) {
+        myInfluencersGridView.classList.add('hidden');
+        myInfluencerDetailView.classList.add('hidden');
+        myCampaignsGridView.classList.add('hidden');
+        myCampaignsDetailView.classList.add('hidden');
+
+        subTabInfluencers.classList.remove('active');
+        subTabCampaigns.classList.remove('active');
+
+        if (subTab === 'influencers') {
+            subTabInfluencers.classList.add('active');
+            myInfluencersGridView.classList.remove('hidden');
+            renderMyInfluencersGrid();
+        } else {
+            subTabCampaigns.classList.add('active');
+            myCampaignsGridView.classList.remove('hidden');
+            renderMyCampaignsGrid();
         }
     }
 
@@ -419,23 +470,10 @@
             campaignDetailView.classList.remove('hidden'); 
         } 
     }
-
-    function showMyInfluencersView(viewName, params = {}) {
-        myInfluencersGridView.classList.add('hidden');
-        myInfluencerDetailView.classList.add('hidden');
-        
-        if (viewName === 'grid') {
-            renderMyInfluencersGrid();
-            myInfluencersGridView.classList.remove('hidden');
-        } else {
-            renderMyInfluencerDetail(params.id);
-            myInfluencerDetailView.classList.remove('hidden');
-        }
-    }
     
     function destroyCharts() { for (const chartId in charts) { if (charts[chartId]) { charts[chartId].destroy(); delete charts[chartId]; } } }
 
-    // 3. LOGICA CAMPAÑAS
+    // 3. LOGICA CAMPAÑAS (GLOBALES)
     function renderCampaignOverview() {
         if (campaignsData.length === 0) return;
         
@@ -526,54 +564,95 @@
         charts['funnel'] = new Chart(ctxFunnel, {type: 'bar', data: {labels: ['Impresiones', 'Alcance', 'Clics', 'Tickets'],datasets: [{label: 'Conversión',data: [c.impressions, c.reach, c.clicks, c.ticketsSold],backgroundColor: ['#7f1d1d', '#b91c1c', '#ef4444', '#22c55e']}]}, options: {indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false}, title: {display:true, text:'Embudo de Conversión', color:'#aaa'} }, scales: { x: {ticks:{color:'#aaa'}}, y: {ticks:{color:'#fff'}} }}});
     }
 
-    // 4. LOGICA MIS INFLUENCERS
+    // 4. LOGICA MIS INFLUENCERS & CAMPAÑAS DE INFLUENCERS
     function processMyInfluencersData() {
-        const grouped = {};
+        // --- Agrupación 1: Por Influencer ---
+        const groupedInflu = {};
+        // --- Agrupación 2: Por Campaña (Título Contenido) ---
+        const groupedCampaign = {};
+
         myInfluencersRawData.forEach(row => {
             const id = row['ID influencer'];
-            if (!id) return;
-            if (!grouped[id]) {
-                grouped[id] = {
+            const title = row['Título Contenido'];
+            
+            if (!id || !title) return;
+
+            // Procesar Influencer
+            if (!groupedInflu[id]) {
+                groupedInflu[id] = {
                     id: id,
                     name: row['Influencer'],
                     platform: row['Plataforma'], 
                     image: row['Imagen'],
-                    impressions: 0, likes: 0, comments: 0, reach: 0, shares: 0,
+                    sumImpressions: 0, sumLikes: 0, sumComments: 0, sumReach: 0, sumShares: 0,
                     men: 0, women: 0,
                     count: 0,
-                    contents: [] // Array para guardar filas individuales
+                    contents: [] 
                 };
             }
-            grouped[id].impressions += (row['Impresiones'] || 0);
-            grouped[id].likes += (row['Likes'] || 0);
-            grouped[id].comments += (row['Comentarios'] || 0);
-            grouped[id].reach += (row['Cuentas Alcanzadas'] || 0);
-            grouped[id].shares += (row['Veces compartidas'] || 0);
-            grouped[id].men += (row['Hombres'] || 0);
-            grouped[id].women += (row['Mujeres'] || 0);
-            grouped[id].count++;
-            grouped[id].contents.push(row);
+            groupedInflu[id].sumImpressions += (row['Impresiones'] || 0);
+            groupedInflu[id].sumLikes += (row['Likes'] || 0);
+            groupedInflu[id].sumComments += (row['Comentarios'] || 0);
+            groupedInflu[id].sumReach += (row['Cuentas Alcanzadas'] || 0);
+            groupedInflu[id].sumShares += (row['Veces compartidas'] || 0);
+            groupedInflu[id].men += (row['Hombres'] || 0);
+            groupedInflu[id].women += (row['Mujeres'] || 0);
+            groupedInflu[id].count++;
+            groupedInflu[id].contents.push(row);
+
+            // Procesar Campaña
+            if (!groupedCampaign[title]) {
+                groupedCampaign[title] = {
+                    title: title,
+                    totalImpressions: 0,
+                    totalReach: 0,
+                    totalLikes: 0,
+                    totalComments: 0,
+                    contents: []
+                };
+            }
+            groupedCampaign[title].totalImpressions += (row['Impresiones'] || 0);
+            groupedCampaign[title].totalReach += (row['Cuentas Alcanzadas'] || 0);
+            groupedCampaign[title].totalLikes += (row['Likes'] || 0);
+            groupedCampaign[title].totalComments += (row['Comentarios'] || 0);
+            groupedCampaign[title].contents.push(row);
         });
-        processedMyInfluencers = Object.values(grouped);
+
+        // Convertir objeto Influencers a array y calcular promedios
+        processedMyInfluencers = Object.values(groupedInflu).map(influ => {
+            return {
+                ...influ,
+                avgImpressions: influ.sumImpressions / influ.count,
+                avgLikes: influ.sumLikes / influ.count,
+                avgComments: influ.sumComments / influ.count,
+                avgReach: influ.sumReach / influ.count,
+                avgMen: Math.round(influ.men / influ.count),
+                avgWomen: Math.round(influ.women / influ.count)
+            };
+        });
+
+        // Convertir objeto Campañas a array
+        processedMyCampaigns = Object.values(groupedCampaign);
     }
 
+    // --- RENDERIZADO SUB-PESTAÑA: INFLUENCERS ---
     function renderMyInfluencersGrid() {
-        const grid = document.getElementById('my-influencers-grid');
-        grid.innerHTML = '';
-        if (processedMyInfluencers.length === 0) { grid.innerHTML = '<p>No hay datos.</p>'; return; }
+        myInfluencersGrid.innerHTML = '';
+        if (processedMyInfluencers.length === 0) { myInfluencersGrid.innerHTML = '<p>No hay datos.</p>'; return; }
 
         // Ordenar
         const sortKey = myInfluencersSort.value;
         const sortedList = [...processedMyInfluencers].sort((a,b) => {
             if (sortKey === 'name') return a.name.localeCompare(b.name);
             if (sortKey === 'count') return b.count - a.count;
-            if (sortKey === 'engagement') return (b.likes+b.comments) - (a.likes+a.comments);
-            return (b[sortKey] || 0) - (a[sortKey] || 0);
+            if (sortKey === 'engagement') return (b.avgLikes+b.avgComments) - (a.avgLikes+a.avgComments);
+            // Mapeo para promedios
+            if (sortKey === 'impressions') return b.avgImpressions - a.avgImpressions;
+            if (sortKey === 'reach') return b.avgReach - a.avgReach;
+            return 0;
         });
 
         sortedList.forEach(influ => {
-            const avgMen = Math.round(influ.men / influ.count);
-            const avgWomen = Math.round(influ.women / influ.count);
             const imageUrl = influ.image ? `images/${influ.image}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(influ.name)}&background=random`;
 
             const card = document.createElement('div');
@@ -588,34 +667,37 @@
                     <div class="content-badge">${influ.count} Contenidos</div>
                 </div>
                 <div class="my-influencer-stats">
-                    <div class="stat-row"><span>Impresiones</span> <span>${influ.impressions.toLocaleString()}</span></div>
-                    <div class="stat-row"><span>Alcance</span> <span>${influ.reach.toLocaleString()}</span></div>
-                    <div class="stat-row"><span>Likes</span> <span>${influ.likes.toLocaleString()}</span></div>
-                    <div class="stat-row"><span>Comentarios</span> <span>${influ.comments.toLocaleString()}</span></div>
+                    <div class="stat-row"><span>Prom. Impr</span> <span>${Math.round(influ.avgImpressions).toLocaleString()}</span></div>
+                    <div class="stat-row"><span>Prom. Alcance</span> <span>${Math.round(influ.avgReach).toLocaleString()}</span></div>
+                    <div class="stat-row"><span>Prom. Likes</span> <span>${Math.round(influ.avgLikes).toLocaleString()}</span></div>
+                    <div class="stat-row"><span>Prom. Comm</span> <span>${Math.round(influ.avgComments).toLocaleString()}</span></div>
                 </div>
                 <div style="padding: 0 20px 20px 20px;">
-                    <p style="font-size:0.8rem;color:#aaa;margin-bottom:5px">Audiencia: Hombres ${avgMen}% / Mujeres ${avgWomen}%</p>
+                    <p style="font-size:0.8rem;color:#aaa;margin-bottom:5px">Audiencia Media: Hombres ${influ.avgMen}% / Mujeres ${influ.avgWomen}%</p>
                     <div class="demographics-bar">
-                        <div class="demographics-fill" style="width:${avgMen}%;background:#3b82f6"></div>
-                        <div class="demographics-fill" style="width:${avgWomen}%;background:#ec4899"></div>
+                        <div class="demographics-fill" style="width:${influ.avgMen}%;background:#3b82f6"></div>
+                        <div class="demographics-fill" style="width:${influ.avgWomen}%;background:#ec4899"></div>
                     </div>
                 </div>
             `;
             // Click evento para ir al detalle
-            card.onclick = () => showMyInfluencersView('detail', {id: influ.id});
-            grid.appendChild(card);
+            card.onclick = () => showMyInfluencerDetail(influ.id);
+            myInfluencersGrid.appendChild(card);
         });
     }
 
-    function renderMyInfluencerDetail(id) {
+    function showMyInfluencerDetail(id) {
         const influ = processedMyInfluencers.find(i => i.id == id);
         if (!influ) return;
         
+        myInfluencersGridView.classList.add('hidden');
+        myInfluencerDetailView.classList.remove('hidden');
+
         const imageUrl = influ.image ? `images/${influ.image}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(influ.name)}&background=random`;
         
         myInfluencerDetailView.innerHTML = `
             <div class="campaign-header">
-                <button class="btn btn-secondary" onclick="showMyInfluencersView('grid')">← Volver a la lista</button>
+                <button class="btn btn-secondary" onclick="handleSubTabClick('influencers')">← Volver a Influencers</button>
             </div>
             <div style="display:flex; gap:20px; align-items:center; background:var(--bg-card); padding:20px; border-radius:10px; border:1px solid var(--border); margin-bottom:20px">
                 <img src="${imageUrl}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid var(--primary)">
@@ -623,8 +705,8 @@
                     <h2 style="font-size:2rem; margin:0">${influ.name}</h2>
                     <p class="text-secondary">${influ.platform} • ${influ.count} Contenidos Publicados</p>
                     <div style="display:flex; gap:15px; margin-top:10px">
-                        <span class="tag" style="background:#333; padding:5px 10px; border-radius:5px">👁️ ${influ.impressions.toLocaleString()} Impresiones</span>
-                        <span class="tag" style="background:#333; padding:5px 10px; border-radius:5px">❤️ ${influ.likes.toLocaleString()} Likes</span>
+                        <span class="tag" style="background:#333; padding:5px 10px; border-radius:5px">👁️ ${Math.round(influ.avgImpressions).toLocaleString()} Prom. Impresiones</span>
+                        <span class="tag" style="background:#333; padding:5px 10px; border-radius:5px">❤️ ${Math.round(influ.avgLikes).toLocaleString()} Prom. Likes</span>
                     </div>
                 </div>
             </div>
@@ -659,6 +741,112 @@
                 </table>
             </div>
         `;
+    }
+
+    // --- RENDERIZADO SUB-PESTAÑA: CAMPAÑAS DE INFLUENCERS ---
+    function renderMyCampaignsGrid() {
+        myCampaignsGrid.innerHTML = '';
+        if (processedMyCampaigns.length === 0) { myCampaignsGrid.innerHTML = '<p>No hay datos de campañas.</p>'; return; }
+
+        processedMyCampaigns.forEach(camp => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+                <h3>${camp.title}</h3>
+                <p class="text-secondary" style="margin-bottom:10px">${camp.contents.length} Contenidos / Influencers</p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.9rem">
+                    <div><strong>${camp.totalImpressions.toLocaleString()}</strong> <br><span class="text-secondary">Impresiones</span></div>
+                    <div><strong>${camp.totalLikes.toLocaleString()}</strong> <br><span class="text-secondary">Likes</span></div>
+                </div>
+                <div style="margin-top:10px; text-align:right">
+                    <span style="color:var(--primary); font-weight:bold; font-size:0.8rem">VER DETALLES →</span>
+                </div>
+            `;
+            card.onclick = () => renderMyCampaignDetail(camp.title);
+            myCampaignsGrid.appendChild(card);
+        });
+    }
+
+    function renderMyCampaignDetail(title, sortBy = 'likes') {
+        const camp = processedMyCampaigns.find(c => c.title === title);
+        if (!camp) return;
+
+        myCampaignsGridView.classList.add('hidden');
+        myCampaignsDetailView.classList.remove('hidden');
+
+        // Ordenar contenidos
+        let sortedContents = [...camp.contents];
+        if (sortBy === 'likes') sortedContents.sort((a,b) => b['Likes'] - a['Likes']);
+        else if (sortBy === 'impressions') sortedContents.sort((a,b) => b['Impresiones'] - a['Impresiones']);
+        else if (sortBy === 'men') sortedContents.sort((a,b) => b['Hombres'] - a['Hombres']);
+        else if (sortBy === 'women') sortedContents.sort((a,b) => b['Mujeres'] - a['Mujeres']);
+
+        myCampaignsDetailView.innerHTML = `
+            <div class="campaign-header">
+                <div style="display:flex; gap:10px; align-items:center">
+                     <button class="btn btn-secondary" id="back-to-camp-grid">← Volver</button>
+                     <h2 style="color:var(--primary); margin:0">${camp.title}</h2>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center">
+                     <label class="text-secondary">Ordenar por:</label>
+                     <select id="campaign-detail-sort" style="width:150px">
+                        <option value="likes" ${sortBy==='likes'?'selected':''}>Mayor Likes</option>
+                        <option value="impressions" ${sortBy==='impressions'?'selected':''}>Mayor Visualizaciones</option>
+                        <option value="men" ${sortBy==='men'?'selected':''}>% Hombres</option>
+                        <option value="women" ${sortBy==='women'?'selected':''}>% Mujeres</option>
+                     </select>
+                </div>
+            </div>
+            
+            <div class="global-dashboard" style="margin-bottom:20px; grid-template-columns:repeat(4,1fr)">
+                <div class="global-kpi-card" style="padding:15px">
+                    <span class="label">Total Impresiones</span><span class="value">${camp.totalImpressions.toLocaleString()}</span>
+                </div>
+                 <div class="global-kpi-card" style="padding:15px">
+                    <span class="label">Total Alcance</span><span class="value">${camp.totalReach.toLocaleString()}</span>
+                </div>
+                 <div class="global-kpi-card" style="padding:15px">
+                    <span class="label">Total Likes</span><span class="value">${camp.totalLikes.toLocaleString()}</span>
+                </div>
+                 <div class="global-kpi-card" style="padding:15px">
+                    <span class="label">Nº Influencers</span><span class="value">${camp.contents.length}</span>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom:15px;">Contenidos Asociados</h3>
+            <div style="overflow-x:auto;">
+                <table class="content-table">
+                    <thead>
+                        <tr>
+                            <th>Influencer</th>
+                            <th>Plataforma</th>
+                            <th>Impresiones</th>
+                            <th>Likes</th>
+                            <th>% Hombres</th>
+                            <th>% Mujeres</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sortedContents.map(c => `
+                            <tr>
+                                <td style="font-weight:bold; color:var(--primary)">${c['Influencer']}</td>
+                                <td>${c['Plataforma']}</td>
+                                <td>${(c['Impresiones']||0).toLocaleString()}</td>
+                                <td>${(c['Likes']||0).toLocaleString()}</td>
+                                <td>${c['Hombres']}%</td>
+                                <td>${c['Mujeres']}%</td>
+                                <td><button class="btn btn-secondary" style="padding:2px 8px; font-size:0.8rem" onclick="showMyInfluencerDetail(${c['ID influencer']})">Ver ficha</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        // Eventos internos
+        document.getElementById('back-to-camp-grid').onclick = () => handleSubTabClick('campaigns');
+        document.getElementById('campaign-detail-sort').onchange = (e) => renderMyCampaignDetail(title, e.target.value);
     }
 
     // 5. LOGICA EXPLORAR
@@ -710,6 +898,11 @@
     // Inicialización
     document.addEventListener('DOMContentLoaded', () => { 
         tabs.forEach(t => t.addEventListener('click', handleTabClick)); 
+        
+        // Eventos Sub Pestañas
+        subTabInfluencers.addEventListener('click', () => handleSubTabClick('influencers'));
+        subTabCampaigns.addEventListener('click', () => handleSubTabClick('campaigns'));
+
         searchBtn.onclick = filterInfluencersData; 
         campaignSortFilter.onchange = renderCampaignOverview; 
         document.getElementById('reload-data-btn').onclick = loadData;
