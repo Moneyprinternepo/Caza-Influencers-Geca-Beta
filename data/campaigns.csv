@@ -1,15 +1,15 @@
 Id,Name,Type,Content,Goal,Range,Spent,Days Active,Spent Per Day,Views,Cost Per 100 Individuals,Reach,Frequency,Link Clicks,Cost Per Click,Click Rate,Interactions,3s Views,Retention Rate,Reactions,Tickets Sold,Ticket Rate,imageFile
-1,Superman,Meta,Video,Rendimiento,km25+ Cines,115.98,7,16.57,67821.00,1.71,54586.00,1.24,1408,0.08,2.08,28617,26826,39.55,348,,,Superman.png
-2,Fantastic 4,Meta,Video,Rendimiento,km20+ Barce,120.56,5,24.11,93019,1.30,69720,1.33,2171,0.06,2.33,39383,36532,39.27,635,,,4Fantastic.png
-3,Jurassic Worl,Meta,Video,Rendimiento,km30+ Barce,132.18,7,18.88,62606,2.11,59743,1.05,2078,0.06,3.32,22911,20549,32.82,241,,,JurassicW.png
-4,4DX VERANO,Meta,Video,Rendimiento,42+mi Cines,174.97,7,24.99,172500,0.99,101600,1.70,2196,0.08,1.27,47164,44737,25.93,214,,,4dx.png
-5,Regreso a futuro,Meta,Imagen,Rendimiento,56+mi,174.98,7,249971429,232600,0.74905822,149800,1.55,3800,0.0459809,182013699,4574,173,0.07405022,502,,,BTTF.png
-6,4DX Verano 2,Meta,Video,Rendimiento,42+mi,80,4,20,90577,0.88322543,61001,1.48,3005,0.0756189,11055532,19862,18802,207580291,53,,,4dx.png
-7,Tiburón,Meta,Imagen,Rendimiento,56+mi,174.79,7,24.97,196400,0.88949045,102500,1.92,2081,0.08389237,110595723,2516,50,0.02543025,345,,,Tiburon.png
-8,4DX Verano 1,Meta,Video,Rendimiento,42+mi,174.97,7,249957143,172500,101421014,101600,1.70,2196,0.07876598,127304348,47264,44737,259344928,214,,,4dx.png
-9,Regreso a futuro Delorian BCN,Meta,Video,Rendimiento,27+mi,249.99,10,24999,284900,0.87749578,168000,1.70,6891,0.03624538,241821341,78267,70097,246040706,1142,,,BTTF.png
-10,Polar Express,Meta,Video,Rendimiento,21+mi,179.93,9,19.9,121700,0.147847165,72625,1.68,2763,0.065121245,2270336894,4065,206,,226,,,polar.png
-11,Avatar 3,Meta,Imagen,Rendimiento,20+km,109.85,11,9.98,84388,0.130172536,56134,1.50,2089,0.052584969,2.47,2389,,,287,,,Avatar.png
+1,Superman,Meta,Video,Rendimiento,km25+ Cines,115.98,7,16.57,67821.00,0.21,54586.00,1.24,1408,0.08,2.08,28617,26826,39.55,348,,,Superman.png
+2,Fantastic 4,Meta,Video,Rendimiento,km20+ Barce,120.56,5,24.11,93019,0.17,69720,1.33,2171,0.06,2.33,39383,36532,39.27,635,,,4Fantastic.png
+3,Jurassic Worl,Meta,Video,Rendimiento,km30+ Barce,132.18,7,18.88,62606,0.22,59743,1.05,2078,0.06,3.32,22911,20549,32.82,241,,,JurassicW.png
+4,4DX VERANO,Meta,Video,Rendimiento,42+mi Cines,174.97,7,25.00,172500,0.17,101600,1.70,2196,0.08,1.27,47164,44737,25.93,214,,,4dx.png
+5,Regreso a futuro,Meta,Imagen,Rendimiento,56+mi,174.98,7,25.00,232600,0.12,149800,1.55,3800,0.05,1.63,4574,173,0.07,502,,,BTTF.png
+6,4DX Verano 2,Meta,Video,Rendimiento,42+mi,80.00,4,20.00,90577,0.13,61001,1.48,3005,0.03,3.32,19862,18802,20.76,53,,,4dx.png
+7,Tiburón,Meta,Imagen,Rendimiento,56+mi,174.79,7,24.97,196400,0.17,102500,1.92,2081,0.08,1.06,2516,50,0.03,345,,,Tiburon.png
+8,4DX Verano 1,Meta,Video,Rendimiento,42+mi,174.97,7,25.00,172500,0.17,101600,1.70,2196,0.08,1.27,47264,44737,25.93,214,,,4dx.png
+9,Regreso a futuro Delorian BCN,Meta,Video,Rendimiento,27+mi,249.99,10,25.00,284900,0.15,168000,1.70,6891,0.04,2.42,78267,70097,24.60,1142,,,BTTF.png
+10,Polar Express,Meta,Video,Rendimiento,21+mi,179.93,9,19.99,121700,0.25,72625,1.68,2763,0.07,2.27,4065,206,0.17,226,,,polar.png
+11,Avatar 3,Meta,Imagen,Rendimiento,20+km,109.85,11,9.99,84388,0.20,56134,1.50,2089,0.05,2.48,2389,,,287,,,Avatar.png
 12,Abierto Hasta el Amanecer,Meta,,Conseguir más visitas al sitio web,,29.99,3,10.00,28164,0.13,23594,1.19,839,0.04,2.98,,15071,53.51,279,,,Abierto_Hasta_el_Amanecer.png
 13,Avatar 3 Moha,Meta,,Conseguir más visitas al sitio web,,599.57,30,19.99,315800,0.33,183600,1.72,9608,0.06,3.04,,113681,36.00,2469,,,AVATAR_3_MOHA.png
 14,Chainsaw Man,Meta,,Conseguir más visitas al sitio web,,125.89,7,17.98,101800,0.21,60055,1.70,1954,0.06,1.92,32352,29516,28.99,841,,,CHAINSAW_MAN.png
@@ -28,9 +28,6 @@ Id,Name,Type,Content,Goal,Range,Spent,Days Active,Spent Per Day,Views,Cost Per 1
 27,Top Gun Evento,Meta,,Conseguir más visitas al sitio web,,9.74,3,3.25,7434,0.14,6748,1.10,487,0.02,6.55,549,16,0.22,28,,,TOP_GUN_EVENTO.png
 28,Top Gun Trailer,Meta,,Conseguir más visitas al sitio web,,29.94,3,9.98,28152,0.13,22989,1.22,1573,0.02,5.59,,12653,44.95,226,,,TOP_GUN_TRAILER.png
 29,Top Gun Video Trend 4K,Meta,,,,20.00,2,10.00,8928,0.41,4897,1.82,100,0.20,1.12,,2612,29.26,85,,,TOP_GUN_VIDEO_TREND_4K.png
-
-
-
 
 
 
