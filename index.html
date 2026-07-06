@@ -1,167 +1,283 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Caza Influencers - Dashboard Pro</title>
-  
-  <!-- Estilos Externos -->
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Caza Influencers — Dashboard Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.3.0/chart.umd.min.js"></script>
+<style>
+:root{--primary:#ef4444;--primary-dark:#7f1d1d;--bg-dark:#111;--bg-card:#1f1f1f;--bg-input:#2d2d2d;--text:#fff;--text-secondary:#aaa;--border:#444;--success:#22c55e;--warning:#f59e0b;--danger:#dc2626;--info:#3b82f6;--podium-gold:#ffd700;--podium-silver:#c0c0c0;--podium-bronze:#cd7f32}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:var(--bg-dark);color:var(--text);padding:20px}
+.container{max-width:1240px;margin:0 auto}
+header{text-align:center;margin-bottom:30px}
+h1{font-size:3rem;text-transform:uppercase;letter-spacing:3px;background:linear-gradient(to right,var(--primary),var(--primary-dark));-webkit-background-clip:text;color:transparent;margin-bottom:20px}
+.logos{display:flex;justify-content:space-between;align-items:center}
+.logos img{height:60px}
 
-  <!-- Librerías Externas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.3.0/chart.umd.min.js"></script>
+/* TABS */
+.tabs{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:10px 20px;border-radius:5px;background:var(--bg-card);border:none;color:var(--text);cursor:pointer;transition:background .3s;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
+.tab:hover{background:#333}
+.tab.active{background:var(--primary);color:white}
+
+/* SUB-TABS */
+.sub-tabs{display:flex;justify-content:start;gap:10px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;flex-wrap:wrap}
+.sub-tab{padding:8px 16px;border-radius:20px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;font-size:.9rem}
+.sub-tab:hover{background:var(--bg-input);color:var(--text)}
+.sub-tab.active{background:var(--text);color:var(--bg-dark);border-color:var(--text);font-weight:bold}
+
+/* FILTROS */
+.filter-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:15px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border);margin-bottom:20px}
+select,input[type="text"]{width:100%;padding:10px;border-radius:5px;background:var(--bg-input);border:1px solid var(--border);color:var(--text)}
+.btn{background:linear-gradient(to right,var(--primary),var(--primary-dark));color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;font-weight:bold;text-decoration:none;display:inline-block;text-align:center;transition:transform .1s}
+.btn:active{transform:scale(.98)}
+.btn-secondary{background:var(--bg-card);border:1px solid var(--border)}
+.campaign-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px}
+
+/* CARDS */
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.result-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:15px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.result-card:hover{transform:translateY(-5px);border-color:var(--primary);box-shadow:0 5px 15px rgba(239,68,68,.2)}
+.result-card h3{font-size:1.2rem;margin-bottom:5px;color:var(--primary)}
+.text-secondary{color:var(--text-secondary);font-size:.9rem}
+.text-impact{color:var(--success);font-weight:bold}
+.hidden{display:none!important}
+
+/* LOADER */
+.loader{border:5px solid var(--bg-input);border-top:5px solid var(--primary);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:50px auto}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+
+/* DASHBOARD KPIs */
+.global-dashboard{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:30px}
+@media(max-width:768px){.global-dashboard{grid-template-columns:1fr 1fr}}
+.global-kpi-card{background:var(--bg-card);padding:20px;border-radius:10px;border-left:4px solid var(--primary);display:flex;flex-direction:column;justify-content:center}
+.global-kpi-card span.label{text-transform:uppercase;font-size:.8rem;color:var(--text-secondary);margin-bottom:5px}
+.global-kpi-card span.value{font-size:1.6rem;font-weight:bold}
+
+/* INSIGHTS PANEL (nuevo) */
+.insights-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:15px;margin-bottom:30px}
+.insight-card{background:linear-gradient(135deg,var(--bg-card),var(--bg-input));border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+.insight-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--info)}
+.insight-card.good::before{background:var(--success)}
+.insight-card.warn::before{background:var(--warning)}
+.insight-card.bad::before{background:var(--danger)}
+.insight-icon{font-size:1.5rem;margin-bottom:8px}
+.insight-title{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);margin-bottom:6px}
+.insight-headline{font-size:1.35rem;font-weight:800;line-height:1.15;margin-bottom:6px}
+.insight-detail{font-size:.85rem;color:var(--text-secondary);line-height:1.35}
+.insight-detail strong{color:var(--text)}
+
+/* PODIUM */
+.podium-container{display:flex;align-items:flex-end;justify-content:center;gap:15px;margin:40px 0;padding:20px;min-height:320px}
+.podium-item{border-radius:10px 10px 0 0;padding:20px;text-align:center;transition:all .3s ease;cursor:pointer;position:relative;width:30%;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1000px rgba(0,0,0,.6)}
+.podium-item:hover{box-shadow:inset 0 0 0 1000px rgba(0,0,0,.3);transform:translateY(-10px)}
+.podium-item--1{order:2;height:280px;border-bottom:6px solid var(--podium-gold);transform:scale(1.05);z-index:2}
+.podium-item--2{order:1;height:240px;border-bottom:6px solid var(--podium-silver)}
+.podium-item--3{order:3;height:220px;border-bottom:6px solid var(--podium-bronze)}
+.podium-rank{font-size:4rem;font-weight:900;line-height:1;margin-bottom:10px;text-shadow:0 2px 5px rgba(0,0,0,.8)}
+.podium-item--1 .podium-rank{color:var(--podium-gold)}
+.podium-item--2 .podium-rank{color:var(--podium-silver)}
+.podium-item--3 .podium-rank{color:var(--podium-bronze)}
+.podium-name{font-size:1.1rem;font-weight:bold;margin-bottom:8px;text-shadow:0 1px 3px black}
+.podium-metric{font-size:1rem;color:var(--success);background:rgba(0,0,0,.8);padding:2px 8px;border-radius:4px;display:inline-block}
+
+/* LISTS */
+.campaign-list-item{display:flex;align-items:center;background:var(--bg-card);padding:15px;border-radius:8px;margin-bottom:10px;cursor:pointer;transition:background .2s;border-left:4px solid transparent}
+.campaign-list-item:hover{background:#2a2a2a;border-left-color:var(--primary)}
+.campaign-list-thumbnail{width:60px;height:60px;border-radius:8px;object-fit:cover;margin-right:20px;background:var(--bg-input)}
+.campaign-list-item .info{flex-grow:1;min-width:0}
+.campaign-list-item .info h4{font-size:1.1rem;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.campaign-list-item .metric-group{display:flex;gap:20px;text-align:right}
+.campaign-list-item .metric-col{display:flex;flex-direction:column}
+.campaign-list-item .metric-val{font-weight:bold;color:#fff}
+.campaign-list-item .metric-lbl{font-size:.7rem;color:var(--text-secondary)}
+@media(max-width:640px){.campaign-list-item .metric-group{gap:10px}.campaign-list-item .metric-lbl{font-size:.6rem}}
+
+/* DETAIL */
+.campaign-detail-hero{position:relative;height:350px;border-radius:15px;overflow:hidden;margin-bottom:20px;display:flex;align-items:flex-end;background-color:var(--bg-card);background-size:cover;background-position:center}
+.campaign-detail-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1),rgba(0,0,0,.9))}
+.campaign-hero-content{position:relative;z-index:2;padding:30px;width:100%;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:15px}
+.campaign-hero-title h2{font-size:3rem;margin:0;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,.8)}
+.campaign-hero-title p{font-size:1.2rem;color:#ddd;margin-top:5px;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.campaign-status-badge{padding:8px 16px;border-radius:20px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;backdrop-filter:blur(5px);background:rgba(34,197,94,.2);color:var(--success);border:1px solid var(--success)}
+.campaign-status-badge.bad{background:rgba(220,38,38,.2);color:var(--danger);border:1px solid var(--danger)}
+.campaign-status-badge.neutral{background:rgba(245,158,11,.2);color:var(--warning);border:1px solid var(--warning)}
+.campaign-detail-main-grid{display:grid;grid-template-columns:2fr 1.2fr;gap:25px}
+.chart-wrapper{background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border);height:320px;position:relative;margin-bottom:20px}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px}
+.kpi-card-small{background:var(--bg-card);padding:15px;border-radius:10px;border:1px solid var(--border);transition:transform .2s}
+.kpi-card-small:hover{transform:translateY(-2px);border-color:var(--primary)}
+.kpi-card-small .kpi-title{font-size:.8rem;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.kpi-card-small .kpi-value{font-size:1.6rem;font-weight:bold;line-height:1}
+.kpi-eval{font-size:.8rem;margin-top:5px;font-weight:bold}
+.good{color:var(--success)}.bad{color:var(--danger)}.neutral{color:var(--warning)}
+
+/* MIS INFLUENCERS */
+.my-influencer-card{background:var(--bg-card);border-radius:12px;overflow:hidden;border:1px solid var(--border);display:flex;flex-direction:column;cursor:pointer;transition:transform .2s,border-color .2s}
+.my-influencer-card:hover{transform:translateY(-5px);border-color:var(--primary)}
+.my-influencer-header{padding:20px;background:linear-gradient(45deg,var(--bg-input),var(--bg-card));display:flex;align-items:center;gap:15px;border-bottom:1px solid var(--border);position:relative}
+.my-influencer-avatar{width:70px;height:70px;border-radius:50%;border:3px solid var(--primary);object-fit:cover}
+.my-influencer-stats{padding:20px;display:grid;grid-template-columns:repeat(2,1fr);gap:15px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;padding-bottom:5px}
+.stat-row span:first-child{color:var(--text-secondary);font-size:.9rem}
+.stat-row span:last-child{font-weight:bold}
+.demographics-bar{height:6px;width:100%;background:#333;border-radius:3px;margin-top:5px;overflow:hidden;display:flex}
+.demographics-fill{height:100%}
+.content-badge{background:var(--primary);color:#fff;padding:3px 8px;border-radius:10px;font-size:.75rem;position:absolute;top:15px;right:15px}
+
+/* TABLES */
+.content-table{width:100%;border-collapse:collapse;margin-top:20px;font-size:.9rem}
+.content-table th{text-align:left;padding:12px;background:var(--bg-input);color:var(--text-secondary);border-bottom:2px solid var(--border);cursor:pointer;white-space:nowrap}
+.content-table th:hover{color:var(--text)}
+.content-table td{padding:12px;border-bottom:1px solid var(--border);color:var(--text)}
+.content-table tr:hover{background:#2a2a2a}
+.score-pill{display:inline-block;padding:2px 10px;border-radius:12px;font-weight:bold;font-size:.85rem}
+.score-pill.good{background:rgba(34,197,94,.15)}
+.score-pill.neutral{background:rgba(245,158,11,.15)}
+.score-pill.bad{background:rgba(220,38,38,.15)}
+
+@media(max-width:900px){.campaign-detail-main-grid{grid-template-columns:1fr}.campaign-hero-content{flex-direction:column;align-items:flex-start}}
+</style>
 </head>
 <body>
-  <div class="container" id="mainContent">
-    <header>
-        <h1>Caza Influencers</h1>
-        <div class="logos">
-            <img src="https://images.mediapro.es/generic/companies/logo_geca.png" alt="Logo Geca" />
-            <img src="https://www.cinesfilmax.com/assets/cinesfilmax-logo.svg" alt="Logo Filmax"/>
-        </div>
-    </header>
-    
-    <!-- Pestañas Principales -->
-    <div class="tabs">
-        <button class="tab active" data-tab="campanas">Tus campañas</button>
-        <button class="tab" data-tab="mis-influencers">Mis Influencers</button>
-        <button class="tab" data-tab="explorar">Explorar</button>
+<div class="container" id="mainContent">
+  <header>
+    <h1>Caza Influencers</h1>
+    <div class="logos">
+      <img src="https://images.mediapro.es/generic/companies/logo_geca.png" alt="Logo Geca" />
+      <img src="https://www.cinesfilmax.com/assets/cinesfilmax-logo.svg" alt="Logo Filmax"/>
     </div>
+  </header>
 
-    <!-- VISTA: TUS CAMPAÑAS (GLOBALES) -->
-    <div id="campaign-view">
-        <div id="campaign-overview-view">
-            <!-- Global KPIs -->
-            <div class="global-dashboard">
-                <div class="global-kpi-card">
-                    <span class="label">Inversión Total</span>
-                    <span class="value" id="global-spent">0€</span>
-                </div>
-                <div class="global-kpi-card">
-                    <span class="label">Click Through Rate (Medio)</span>
-                    <span class="value" id="global-ctr">0%</span>
-                </div>
-                <div class="global-kpi-card">
-                    <span class="label">Alcance Medio</span>
-                    <span class="value" id="global-reach">0</span>
-                </div>
-                <div class="global-kpi-card">
-                    <span class="label">Clicks En Enlace Totales</span>
-                    <span class="value" id="global-clicks">0</span>
-                </div>
-                <div class="global-kpi-card">
-                    <span class="label">Tasa Retención Media</span>
-                    <span class="value" id="global-retention">0%</span>
-                </div>
-                 <div class="global-kpi-card">
-                    <span class="label">Frecuencia Media</span>
-                    <span class="value" id="global-frequency">0</span>
-                </div>
-            </div>
-
-            <!-- Gráfico Global -->
-             <div class="chart-wrapper" style="height: 280px; margin-bottom: 30px;">
-                <canvas id="all-campaigns-chart"></canvas>
-            </div>
-
-            <div class="campaign-header">
-                <div>
-                    <h2 style="color:var(--primary);margin-bottom:5px">Ranking de Campañas</h2>
-                    <p class="text-secondary">Clasificación basada en métrica seleccionada.</p>
-                </div>
-                <button class="btn btn-secondary" id="reload-data-btn">🔄 Recargar Datos</button>
-            </div>
-            
-            <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:30px">
-                <label for="campaign-sort-filter" class="text-secondary" style="align-self:center">Ordenar por KPI:</label>
-                <select id="campaign-sort-filter">
-                    <option value="score">Puntuación General (Algoritmo IA)</option>
-                    <option value="ticketsSold">Tickets vendidos</option>
-                    <option value="impressions">Impresiones</option>
-                    <option value="clickRate">CTR (Click Through Rate)</option>
-                    <option value="reach">Alcance</option>
-                    <option value="budget">Coste (Inversión)</option>
-                    <option value="cpc">Coste por Click (CPC)</option>
-                    <option value="cpm">Coste por Impresión (CPM)</option>
-                    <option value="frequency">Frecuencia</option>
-                </select>
-            </div>
-            
-            <div id="campaign-overview-content"></div>
-        </div>
-        
-        <!-- Detalle Campaña Individual -->
-        <div id="campaign-detail-view" class="hidden"></div>
-    </div>
-
-    <!-- VISTA: MIS INFLUENCERS -->
-    <div id="my-influencers-view" class="hidden">
-        
-        <!-- Sub Pestañas internas -->
-        <div class="sub-tabs">
-            <button class="sub-tab active" id="sub-tab-influencers">Por Influencer</button>
-            <button class="sub-tab" id="sub-tab-campaigns">Por Campañas</button>
-        </div>
-
-        <!-- 1. SUB-VISTA: POR INFLUENCER -->
-        <div id="my-influencers-grid-view">
-            <div class="campaign-header">
-                <div>
-                    <h2 style="color:var(--primary)">Mis Influencers Activos</h2>
-                    <p class="text-secondary">Rendimiento <strong>PROMEDIO</strong> por contenido publicado.</p>
-                </div>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <label class="text-secondary">Ordenar por:</label>
-                    <select id="my-influencers-sort" style="width:200px">
-                        <option value="impressions">Prom. Impresiones</option>
-                        <option value="reach">Prom. Alcance</option>
-                        <option value="engagement">Prom. Engagement</option>
-                        <option value="count">Nº de Contenidos (Total)</option>
-                        <option value="name">Alfabético</option>
-                    </select>
-                </div>
-            </div>
-            <div id="my-influencers-grid" class="results-grid"></div>
-        </div>
-        
-        <!-- Detalle de Influencer -->
-        <div id="my-influencer-detail-view" class="hidden"></div>
-
-        <!-- 2. SUB-VISTA: POR CAMPAÑAS (CONTENIDOS) -->
-        <div id="my-campaigns-grid-view" class="hidden">
-            <div class="campaign-header">
-                <div>
-                    <h2 style="color:var(--primary)">Campañas de Influencers</h2>
-                    <p class="text-secondary">Contenidos agrupados por título de campaña.</p>
-                </div>
-            </div>
-            <div id="my-campaigns-grid" class="results-grid"></div>
-        </div>
-
-        <!-- Detalle de Campaña de Influencers -->
-        <div id="my-campaigns-detail-view" class="hidden"></div>
-
-    </div>
-
-    <!-- VISTA: EXPLORAR -->
-    <div id="explore-view" class="hidden">
-        <div class="filter-bar">
-            <select id="platform-filter"><option value="Todos">Todas las plataformas</option><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option><option value="TikTok">TikTok</option><option value="Reddit">Reddit</option></select>
-            <select id="followers-filter"><option value="Todos">Todos los seguidores</option><option value="<100K">Menos de 100K</option><option value="100K-500K">Entre 100K y 500K</option><option value=">500K">Más de 500K</option></select>
-            <select id="tag1-filter"><option value="Todos">Todos los nichos</option></select>
-            <select id="tag2-filter"><option value="Todos">Todos los nichos (2)</option></select>
-            <input type="text" id="search-input" placeholder="Buscar..." />
-            <button class="btn" id="search-btn" disabled>🔍 Buscar</button>
-        </div>
-        <div id="results-container" class="results-grid hidden"></div>
-        <div id="detail-container" class="detail-view hidden"></div>
-    </div>
-    
-    <div id="loader" class="loader"></div>
+  <div class="tabs">
+    <button class="tab active" data-tab="campanas">Tus campañas</button>
+    <button class="tab" data-tab="newsletters">Newsletters</button>
+    <button class="tab" data-tab="mis-influencers">Mis Influencers</button>
+    <button class="tab" data-tab="explorar">Explorar</button>
   </div>
 
-  <!-- Lógica Javascript -->
-  <script src="script.js"></script>
+  <!-- VISTA: TUS CAMPAÑAS -->
+  <div id="campaign-view">
+    <div id="campaign-overview-view">
+      <div class="insights-panel" id="campaign-insights"></div>
+      <div class="global-dashboard">
+        <div class="global-kpi-card"><span class="label">Inversión Total</span><span class="value" id="global-spent">0€</span></div>
+        <div class="global-kpi-card"><span class="label">CTR Medio</span><span class="value" id="global-ctr">0%</span></div>
+        <div class="global-kpi-card"><span class="label">Alcance Medio</span><span class="value" id="global-reach">0</span></div>
+        <div class="global-kpi-card"><span class="label">Clicks Totales</span><span class="value" id="global-clicks">0</span></div>
+        <div class="global-kpi-card"><span class="label">Retención Media</span><span class="value" id="global-retention">0%</span></div>
+        <div class="global-kpi-card"><span class="label">Frecuencia Media</span><span class="value" id="global-frequency">0</span></div>
+      </div>
+      <div class="chart-wrapper" style="height:280px;margin-bottom:30px"><canvas id="all-campaigns-chart"></canvas></div>
+      <div class="campaign-header">
+        <div><h2 style="color:var(--primary);margin-bottom:5px">Ranking de Campañas</h2><p class="text-secondary">Clasificación basada en la métrica seleccionada.</p></div>
+        <button class="btn btn-secondary" id="reload-data-btn">🔄 Recargar Datos</button>
+      </div>
+      <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:30px">
+        <label for="campaign-sort-filter" class="text-secondary" style="align-self:center">Ordenar por KPI:</label>
+        <select id="campaign-sort-filter">
+          <option value="score">Puntuación General (Algoritmo IA)</option>
+          <option value="ticketsSold">Tickets vendidos</option>
+          <option value="cpa">Coste por Ticket (CPA) — menor mejor</option>
+          <option value="impressions">Impresiones</option>
+          <option value="clickRate">CTR (Click Through Rate)</option>
+          <option value="reach">Alcance</option>
+          <option value="budget">Coste (Inversión)</option>
+          <option value="cpc">Coste por Click (CPC) — menor mejor</option>
+          <option value="cpm">Coste por Impresión (CPM) — menor mejor</option>
+          <option value="frequency">Frecuencia</option>
+        </select>
+      </div>
+      <div id="campaign-overview-content"></div>
+    </div>
+    <div id="campaign-detail-view" class="hidden"></div>
+  </div>
+
+  <!-- VISTA: NEWSLETTERS (nueva) -->
+  <div id="newsletter-view" class="hidden">
+    <div id="newsletter-overview-view">
+      <div class="insights-panel" id="newsletter-insights"></div>
+      <div class="global-dashboard">
+        <div class="global-kpi-card"><span class="label">Envíos Analizados</span><span class="value" id="nl-count">0</span></div>
+        <div class="global-kpi-card"><span class="label">Open Rate Medio</span><span class="value" id="nl-open">0%</span></div>
+        <div class="global-kpi-card"><span class="label">CTR Medio</span><span class="value" id="nl-ctr">0%</span></div>
+        <div class="global-kpi-card"><span class="label">Tickets Atribuidos</span><span class="value" id="nl-tickets">0</span></div>
+        <div class="global-kpi-card"><span class="label">Ingresos Atribuidos</span><span class="value" id="nl-revenue">0€</span></div>
+        <div class="global-kpi-card"><span class="label">Ingreso / 1k Envíos</span><span class="value" id="nl-rpm">0€</span></div>
+      </div>
+      <div class="chart-wrapper" style="height:280px;margin-bottom:30px"><canvas id="nl-trend-chart"></canvas></div>
+      <div class="campaign-header">
+        <div><h2 style="color:var(--primary);margin-bottom:5px">Ranking de Newsletters</h2><p class="text-secondary">Los envíos de test / SMTP se excluyen del análisis principal.</p></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.85rem" class="text-secondary"><input type="checkbox" id="nl-show-tests" style="width:auto"> Mostrar tests</label>
+      </div>
+      <div class="filter-bar" style="grid-template-columns:1fr 2fr;margin-bottom:20px">
+        <label for="nl-sort-filter" class="text-secondary" style="align-self:center">Ordenar por KPI:</label>
+        <select id="nl-sort-filter">
+          <option value="score">Puntuación General (Algoritmo IA)</option>
+          <option value="revenue">Ingresos Atribuidos (€)</option>
+          <option value="tickets">Tickets Atribuidos</option>
+          <option value="revPerMille">Ingreso por 1k Envíos (€)</option>
+          <option value="openRate">Open Rate</option>
+          <option value="ctr">CTR</option>
+          <option value="cto">Click-to-Open (CTOR)</option>
+          <option value="attribution">Attribution Rate</option>
+          <option value="recipients">Volumen (Destinatarios)</option>
+        </select>
+      </div>
+      <div id="newsletter-overview-content"></div>
+    </div>
+    <div id="newsletter-detail-view" class="hidden"></div>
+  </div>
+
+  <!-- VISTA: MIS INFLUENCERS -->
+  <div id="my-influencers-view" class="hidden">
+    <div class="sub-tabs">
+      <button class="sub-tab active" id="sub-tab-influencers">Por Influencer</button>
+      <button class="sub-tab" id="sub-tab-campaigns">Por Campañas</button>
+    </div>
+    <div id="my-influencers-grid-view">
+      <div class="campaign-header">
+        <div><h2 style="color:var(--primary)">Mis Influencers Activos</h2><p class="text-secondary">Rendimiento <strong>PROMEDIO</strong> por contenido publicado.</p></div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <label class="text-secondary">Ordenar por:</label>
+          <select id="my-influencers-sort" style="width:200px">
+            <option value="impressions">Prom. Impresiones</option>
+            <option value="reach">Prom. Alcance</option>
+            <option value="engagement">Prom. Engagement</option>
+            <option value="engagementRate">Tasa de Engagement (%)</option>
+            <option value="count">Nº de Contenidos</option>
+            <option value="name">Alfabético</option>
+          </select>
+        </div>
+      </div>
+      <div id="my-influencers-grid" class="results-grid"></div>
+    </div>
+    <div id="my-influencer-detail-view" class="hidden"></div>
+    <div id="my-campaigns-grid-view" class="hidden">
+      <div class="campaign-header"><div><h2 style="color:var(--primary)">Campañas de Influencers</h2><p class="text-secondary">Contenidos agrupados por título de campaña.</p></div></div>
+      <div id="my-campaigns-grid" class="results-grid"></div>
+    </div>
+    <div id="my-campaigns-detail-view" class="hidden"></div>
+  </div>
+
+  <!-- VISTA: EXPLORAR -->
+  <div id="explore-view" class="hidden">
+    <div class="filter-bar">
+      <select id="platform-filter"><option value="Todos">Todas las plataformas</option><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option><option value="TikTok">TikTok</option><option value="Reddit">Reddit</option></select>
+      <select id="followers-filter"><option value="Todos">Todos los seguidores</option><option value="<100K">Menos de 100K</option><option value="100K-500K">Entre 100K y 500K</option><option value=">500K">Más de 500K</option></select>
+      <select id="tag1-filter"><option value="Todos">Todos los nichos</option></select>
+      <select id="tag2-filter"><option value="Todos">Todos los nichos (2)</option></select>
+      <input type="text" id="search-input" placeholder="Buscar..." />
+      <button class="btn" id="search-btn" disabled>🔍 Buscar</button>
+    </div>
+    <div id="results-container" class="results-grid hidden"></div>
+    <div id="detail-container" class="detail-view hidden"></div>
+  </div>
+
+  <div id="loader" class="loader"></div>
+</div>
+<script src="script.js"></script>
 </body>
 </html>
