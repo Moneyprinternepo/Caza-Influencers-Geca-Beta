@@ -247,7 +247,7 @@ function renderCampaignOverview(){
     Chart.defaults.font.family="'Inter',sans-serif";
     Chart.defaults.font.size=11;
     charts.global=new Chart(document.getElementById('all-campaigns-chart'),{type:'bar',
-        data:{labels:chrono.map(c=>truncate(c.name,16)),datasets:[{label:labels[sortKey],data:chrono.map(c=>isFinite(c[sortKey])?c[sortKey]:0),backgroundColor:'rgba(229,72,77,.55)',hoverBackgroundColor:'rgba(229,72,77,.85)',borderRadius:3,maxBarThickness:26}]},
+        data:{labels:chrono.map(c=>truncate(c.name,16)),datasets:[{label:labels[sortKey],data:chrono.map(c=>isFinite(c[sortKey])?c[sortKey]:0),backgroundColor:'rgba(230,51,63,.55)',hoverBackgroundColor:'rgba(230,51,63,.85)',borderRadius:3,maxBarThickness:26}]},
         options:{responsive:true,maintainAspectRatio:false,
             scales:{x:{ticks:{color:'#5f6672',maxRotation:60},grid:{display:false}},y:{ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}}},
             plugins:{legend:{display:false}}}});
@@ -263,11 +263,29 @@ function renderCampaignOverview(){
         if(sortKey==='frequency')return v.toFixed(2).replace('.',',');
         return fmtK(v);
     };
-    document.getElementById('campaign-rank-list').innerHTML=sorted.map((c,i)=>{
+    const featured=sorted.slice(0,3), rest=sorted.slice(3);
+    const featHTML='<div class="featured-grid">'+featured.map((c,i)=>{
+        const bg=c.imageUrl?`background-image:url('${c.imageUrl}')`:`background-image:radial-gradient(ellipse at 30% 0%,rgba(230,51,63,.3),transparent 60%)`;
+        const extra=disp(c);
+        return `<div class="featured-card rank-${i+1}" data-id="${c.id}" style="${bg}">
+            <div class="featured-rank">Nº ${i+1}</div>
+            <div class="featured-score"><span class="score-badge ${scoreClass(c.score)}">${c.score}</span></div>
+            <div class="featured-body">
+                <h3>${c.name}</h3>
+                <div class="meta">${c.type} · ${c.goal} · ${c.daysActive} días · ${fmtEUR2(c.spentPerDay)}/día</div>
+                <div class="featured-metrics">
+                    <div class="fm"><div class="v">${c.clickRate.toFixed(2).replace('.',',')}%</div><div class="l">CTR</div></div>
+                    <div class="fm"><div class="v">${isFinite(c.cpc)?fmtEUR2(c.cpc):'—'}</div><div class="l">CPC</div></div>
+                    ${extra!==null?`<div class="fm"><div class="v">${extra}</div><div class="l">${labels[sortKey]}</div></div>`:''}
+                </div>
+            </div>
+        </div>`;
+    }).join('')+'</div>';
+    document.getElementById('campaign-rank-list').innerHTML=rest.map((c,i)=>{
         const thumb=c.imageUrl?`<img src="${c.imageUrl}" class="rank-thumb" alt="" onerror="this.outerHTML='<div class=\\'rank-thumb letter\\'>${(c.name||'?')[0]}</div>'">`:`<div class="rank-thumb letter">${(c.name||'?')[0]}</div>`;
         const extra=disp(c);
-        return `<div class="rank-row ${i<3?'top':''}" data-id="${c.id}">
-            <div class="rank-num">${String(i+1).padStart(2,'0')}</div>
+        return `<div class="rank-row" data-id="${c.id}">
+            <div class="rank-num">${String(i+4).padStart(2,'0')}</div>
             ${thumb}
             <div class="rank-main"><h4>${c.name}</h4><p>${c.type} · ${c.goal} · ${c.daysActive} días · ${fmtEUR2(c.spentPerDay)}/día</p></div>
             <div class="rank-metrics">
@@ -278,7 +296,11 @@ function renderCampaignOverview(){
             </div>
         </div>`;
     }).join('');
-    document.querySelectorAll('#campaign-rank-list .rank-row').forEach(el=>el.onclick=()=>showCampaignView('detail',{id:el.dataset.id}));
+    // Insertar/actualizar el bloque destacado justo antes de la lista
+    const prevFeat=document.getElementById('campaign-featured');
+    if(prevFeat)prevFeat.remove();
+    document.getElementById('campaign-rank-list').insertAdjacentHTML('beforebegin',`<div id="campaign-featured">${featHTML}</div>`);
+    document.querySelectorAll('#campaign-featured .featured-card,#campaign-rank-list .rank-row').forEach(el=>el.onclick=()=>showCampaignView('detail',{id:el.dataset.id}));
 }
 
 function renderCampaignDetail(id){
@@ -298,13 +320,14 @@ function renderCampaignDetail(id){
     <div class="detail-head">
         <button class="btn" onclick="showCampaignView('overview')">← Volver al ranking</button>
     </div>
-    ${c.imageUrl?`<img src="${c.imageUrl}" class="detail-hero-img" alt="" onerror="this.remove()">`:''}
-    <div class="detail-head">
-        <div class="title-block">
-            <h2>${c.name}</h2>
-            <p>${c.type} · Objetivo: ${c.goal} · Segmento: ${c.range}</p>
+    <div class="detail-hero" style="${c.imageUrl?`background-image:url('${c.imageUrl}')`:`background-image:radial-gradient(ellipse at 20% 0%,rgba(230,51,63,.28),transparent 55%),linear-gradient(135deg,#1c1c22,#101014)`}">
+        <div class="detail-hero-body">
+            <div>
+                <h2>${c.name}</h2>
+                <div class="meta">${c.type} · Objetivo: ${c.goal} · Segmento: ${c.range}</div>
+            </div>
+            <span class="status-chip ${st[0]}">${st[1]} · ${c.score}/100</span>
         </div>
-        <span class="status-chip ${st[0]}">${st[1]} · ${c.score}/100</span>
     </div>
     <div class="detail-grid">
         <div>
@@ -342,7 +365,7 @@ function renderCampaignDetail(id){
         </div>
     </div>`;
     charts.funnel=new Chart(document.getElementById('funnel-chart'),{type:'bar',
-        data:{labels:['Impresiones','Alcance','Clics'],datasets:[{data:[c.impressions,c.reach,c.clicks],backgroundColor:['rgba(229,72,77,.35)','rgba(229,72,77,.6)','rgba(229,72,77,.9)'],borderRadius:4,maxBarThickness:34}]},
+        data:{labels:['Impresiones','Alcance','Clics'],datasets:[{data:[c.impressions,c.reach,c.clicks],backgroundColor:['rgba(230,51,63,.35)','rgba(230,51,63,.6)','rgba(230,51,63,.9)'],borderRadius:4,maxBarThickness:34}]},
         options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
             scales:{x:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},y:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
 }
@@ -442,7 +465,7 @@ function renderNewsletterOverview(){
     charts.nlTrend=new Chart(document.getElementById('nl-trend-chart'),{
         data:{labels:chrono.map(n=>n.date.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})),
             datasets:[
-                {type:'bar',label:'Ingresos (€)',data:chrono.map(n=>n.revenue),backgroundColor:'rgba(229,72,77,.5)',borderRadius:2,yAxisID:'y',maxBarThickness:14},
+                {type:'bar',label:'Ingresos (€)',data:chrono.map(n=>n.revenue),backgroundColor:'rgba(230,51,63,.5)',borderRadius:2,yAxisID:'y',maxBarThickness:14},
                 {type:'line',label:'Open rate (%)',data:chrono.map(n=>n.openRate*100),borderColor:'#46a758',borderWidth:2,pointRadius:0,tension:.35,yAxisID:'y1'}
             ]},
         options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
@@ -453,9 +476,32 @@ function renderNewsletterOverview(){
 
     const key=nlSortFilter.value;
     const sorted=[...list].sort((a,b)=>(b[key]||0)-(a[key]||0));
-    document.getElementById('nl-rank-list').innerHTML=sorted.map((n,i)=>{
-        return `<div class="rank-row ${i<3?'top':''}" data-id="${n.id}">
-            <div class="rank-num">${String(i+1).padStart(2,'0')}</div>
+    const nlFeat=sorted.slice(0,3), nlRest=sorted.slice(3);
+    const grads=[
+        "radial-gradient(ellipse at 25% 0%,rgba(230,51,63,.45),transparent 60%),linear-gradient(150deg,#26161a,#101014)",
+        "radial-gradient(ellipse at 75% 0%,rgba(230,51,63,.3),transparent 55%),linear-gradient(150deg,#1e1518,#101014)",
+        "radial-gradient(ellipse at 50% 100%,rgba(230,51,63,.25),transparent 55%),linear-gradient(150deg,#1a1416,#101014)"
+    ];
+    const featNL='<div class="featured-grid">'+nlFeat.map((n,i)=>`
+        <div class="featured-card rank-${i+1}" data-id="${n.id}" style="background-image:${grads[i]}">
+            <div class="featured-rank">Nº ${i+1}</div>
+            <div class="featured-score"><span class="score-badge ${scoreClass(n.score)}">${n.score}</span></div>
+            <div class="featured-body">
+                <h3 style="font-size:${i===0?'1.15rem':'1rem'}">${truncate(n.subject,64)}</h3>
+                <div class="meta">${n.dateStr} · ${fmtK(n.recipients)} destinatarios</div>
+                <div class="featured-metrics">
+                    <div class="fm"><div class="v">${fmtEUR(n.revenue)}</div><div class="l">Ingresos</div></div>
+                    <div class="fm"><div class="v">${fmtEUR2(n.revPerMille)}</div><div class="l">€/1k</div></div>
+                    <div class="fm"><div class="v">${fmtPct(n.openRate)}</div><div class="l">Open</div></div>
+                </div>
+            </div>
+        </div>`).join('')+'</div>';
+    const prevNLFeat=document.getElementById('nl-featured');
+    if(prevNLFeat)prevNLFeat.remove();
+    document.getElementById('nl-rank-list').insertAdjacentHTML('beforebegin',`<div id="nl-featured">${featNL}</div>`);
+    document.getElementById('nl-rank-list').innerHTML=nlRest.map((n,i)=>{
+        return `<div class="rank-row" data-id="${n.id}">
+            <div class="rank-num">${String(i+4).padStart(2,'0')}</div>
             <div class="rank-thumb letter">${(n.subject.replace(/[^\p{L}\p{N}]/gu,'')[0]||'N').toUpperCase()}</div>
             <div class="rank-main"><h4>${truncate(n.subject,70)}</h4><p>${n.dateStr} · ${fmtK(n.recipients)} destinatarios ${n.isTest?'· <span class="test-tag">test</span>':''}</p></div>
             <div class="rank-metrics">
@@ -466,7 +512,7 @@ function renderNewsletterOverview(){
             </div>
         </div>`;
     }).join('');
-    document.querySelectorAll('#nl-rank-list .rank-row').forEach(el=>el.onclick=()=>showNewsletterView('detail',{id:el.dataset.id}));
+    document.querySelectorAll('#nl-featured .featured-card,#nl-rank-list .rank-row').forEach(el=>el.onclick=()=>showNewsletterView('detail',{id:el.dataset.id}));
 }
 
 function renderNewsletterDetail(id){
@@ -486,12 +532,14 @@ function renderNewsletterDetail(id){
     <div class="detail-head">
         <button class="btn" onclick="showNewsletterView('overview')">← Volver al ranking</button>
     </div>
-    <div class="detail-head">
-        <div class="title-block">
-            <h2>${n.subject}</h2>
-            <p>${n.dateStr} · ${fmtNum(n.recipients)} destinatarios ${n.isTest?'· <span class="test-tag">envío test / técnico</span>':''}</p>
+    <div class="detail-hero nl-hero">
+        <div class="detail-hero-body">
+            <div>
+                <h2 style="font-size:1.5rem">${n.subject}</h2>
+                <div class="meta">${n.dateStr} · ${fmtNum(n.recipients)} destinatarios ${n.isTest?'· <span class="test-tag">envío test / técnico</span>':''}</div>
+            </div>
+            <span class="status-chip ${st[0]}">${st[1]} · ${n.score}/100</span>
         </div>
-        <span class="status-chip ${st[0]}">${st[1]} · ${n.score}/100</span>
     </div>
     <div class="detail-grid">
         <div>
@@ -529,7 +577,7 @@ function renderNewsletterDetail(id){
         </div>
     </div>`;
     charts.nlFunnel=new Chart(document.getElementById('nl-funnel-chart'),{type:'bar',
-        data:{labels:['Enviados','Aperturas','Clics','Tickets'],datasets:[{data:[n.recipients,n.opens,n.clicks,n.tickets],backgroundColor:['rgba(229,72,77,.25)','rgba(229,72,77,.45)','rgba(229,72,77,.7)','rgba(70,167,88,.8)'],borderRadius:4,maxBarThickness:34}]},
+        data:{labels:['Enviados','Aperturas','Clics','Tickets'],datasets:[{data:[n.recipients,n.opens,n.clicks,n.tickets],backgroundColor:['rgba(230,51,63,.25)','rgba(230,51,63,.45)','rgba(230,51,63,.7)','rgba(70,167,88,.8)'],borderRadius:4,maxBarThickness:34}]},
         options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
             scales:{x:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},y:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
 }
@@ -765,7 +813,7 @@ function displayInfluencerDetail(i){
     <div class="chart-card"><div class="chart-title">Métricas (escala logarítmica)</div><div class="chart-body"><canvas id="influencer-chart"></canvas></div></div>`;
     document.getElementById('back-explore-btn').onclick=()=>{detailContainer.classList.add('hidden');resultsContainer.classList.remove('hidden');};
     charts.influencer=new Chart(document.getElementById('influencer-chart'),{type:'bar',
-        data:{labels:['Seguidores','Likes medios','Comentarios medios'],datasets:[{data:[i.followers,i.likesAvg,i.commentsAvg],backgroundColor:['rgba(229,72,77,.7)','rgba(91,141,239,.7)','rgba(70,167,88,.7)'],borderRadius:4,maxBarThickness:44}]},
+        data:{labels:['Seguidores','Likes medios','Comentarios medios'],datasets:[{data:[i.followers,i.likesAvg,i.commentsAvg],backgroundColor:['rgba(230,51,63,.7)','rgba(91,141,239,.7)','rgba(70,167,88,.7)'],borderRadius:4,maxBarThickness:44}]},
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
             scales:{y:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},x:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
 }
