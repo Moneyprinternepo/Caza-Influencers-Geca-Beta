@@ -1,33 +1,44 @@
 /* ================================================================
-   CAZA INFLUENCERS — Dashboard Pro
-   Módulos: Campañas · Newsletters (nuevo) · Mis Influencers · Explorar
+   CAZA INFLUENCERS · Analytics
+   Campañas · Newsletters · Mis Influencers · Explorar
+   ---------------------------------------------------------------
+   ÍNDICE DE EFICIENCIA (campañas, 0–100):
+     Percentil de cada campaña frente al resto en:
+       CPC (invertido)      30%   coste de cada clic
+       CTR                  25%   proporción de clics
+       CPM (invertido)      15%   coste de cada mil impresiones
+       Retención            15%   calidad del vídeo (si existe)
+       Frecuencia óptima    15%   cercanía al rango ideal 1,2–1,8
+     Nota: las campañas de Meta no registran tickets vendidos, por lo
+     que el índice mide eficiencia de medios, no conversión final.
+
+   ÍNDICE DE RENDIMIENTO (newsletters, 0–100):
+     € por 1k envíos        35%   rentabilidad normalizada por volumen
+     Ingresos absolutos     20%
+     Open rate              15%
+     Click-to-open (CTOR)   15%
+     Attribution rate       15%
    ================================================================ */
 
 let influencersData = [], campaignsData = [], myInfluencersRawData = [], newslettersData = [];
 let processedMyInfluencers = [], processedMyCampaigns = [];
 let charts = {};
 
-/* ---------- Referencias DOM ---------- */
+/* ---------- DOM ---------- */
 const mainContent = document.getElementById('mainContent');
 const loader = document.getElementById('loader');
 const tabs = document.querySelectorAll('.tab');
-
 const exploreView = document.getElementById('explore-view');
 const campaignView = document.getElementById('campaign-view');
 const newsletterView = document.getElementById('newsletter-view');
 const myInfluencersView = document.getElementById('my-influencers-view');
-
 const campaignOverviewView = document.getElementById('campaign-overview-view');
 const campaignDetailView = document.getElementById('campaign-detail-view');
-const campaignOverviewContent = document.getElementById('campaign-overview-content');
 const campaignSortFilter = document.getElementById('campaign-sort-filter');
-
 const nlOverviewView = document.getElementById('newsletter-overview-view');
 const nlDetailView = document.getElementById('newsletter-detail-view');
-const nlOverviewContent = document.getElementById('newsletter-overview-content');
 const nlSortFilter = document.getElementById('nl-sort-filter');
 const nlShowTests = document.getElementById('nl-show-tests');
-
 const subTabInfluencers = document.getElementById('sub-tab-influencers');
 const subTabCampaigns = document.getElementById('sub-tab-campaigns');
 const myInfluencersGridView = document.getElementById('my-influencers-grid-view');
@@ -37,7 +48,6 @@ const myCampaignsDetailView = document.getElementById('my-campaigns-detail-view'
 const myInfluencersSort = document.getElementById('my-influencers-sort');
 const myInfluencersGrid = document.getElementById('my-influencers-grid');
 const myCampaignsGrid = document.getElementById('my-campaigns-grid');
-
 const searchBtn = document.getElementById('search-btn');
 const resultsContainer = document.getElementById('results-container');
 const detailContainer = document.getElementById('detail-container');
@@ -46,244 +56,353 @@ const detailContainer = document.getElementById('detail-container');
 const fmtEUR = n => (n||0).toLocaleString('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 const fmtEUR2 = n => (n||0).toLocaleString('es-ES',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtNum = n => Math.round(n||0).toLocaleString('es-ES');
-const fmtPct = (n,d=1) => ((n||0)*100).toFixed(d)+'%';
-const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
-// convierte "0,177988971" o números a float
+const fmtPct = (n,d=1) => ((n||0)*100).toFixed(d).replace('.',',')+'%';
+const fmtK = n => n>=1000 ? (n/1000).toFixed(1).replace('.',',')+'k' : fmtNum(n);
 const num = v => {
     if(v==null||v==='') return 0;
     if(typeof v==='number') return v;
     let s=String(v).trim();
-    // Si tiene coma decimal (formato ES), elimina puntos de millar y cambia coma por punto.
-    // Si ya viene con punto decimal (CSV normalizado), se deja tal cual.
     if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.');
     return parseFloat(s)||0;
 };
-
-const MESES = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+const truncate=(s,n)=>s.length>n?s.substring(0,n-1)+'…':s;
+const MESES={ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
 function parseFechaES(s){
-    if(!s) return null;
-    const m = String(s).trim().toLowerCase().match(/(\d{1,2})\s+([a-zç]{3})\.?\s+(\d{4})/);
-    if(!m) return null;
-    const mes = MESES[m[2].substring(0,3)];
-    if(mes===undefined) return null;
-    return new Date(parseInt(m[3]), mes, parseInt(m[1]));
+    if(!s)return null;
+    const m=String(s).trim().toLowerCase().match(/(\d{1,2})\s+([a-zç]{3})\.?\s+(\d{4})/);
+    if(!m)return null;
+    const mes=MESES[m[2].substring(0,3)];
+    if(mes===undefined)return null;
+    return new Date(+m[3],mes,+m[1]);
 }
+// Percentil de v dentro de arr (0–100). higherBetter=false invierte.
+function percentile(v, arr, higherBetter=true){
+    const valid=arr.filter(x=>isFinite(x));
+    if(!valid.length)return 50;
+    const below=valid.filter(x=>higherBetter ? x<v : x>v).length;
+    const equal=valid.filter(x=>x===v).length;
+    return ((below + equal*0.5)/valid.length)*100;
+}
+const median=arr=>{const a=[...arr].filter(isFinite).sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:0;};
+const mean=arr=>{const a=arr.filter(isFinite);return a.length?a.reduce((s,v)=>s+v,0)/a.length:0;};
+const q=(arr,p)=>{const a=[...arr].filter(isFinite).sort((x,y)=>x-y);if(!a.length)return 0;return a[Math.min(a.length-1,Math.floor(a.length*p))];};
+const scoreClass=s=>s>=66?'s-high':(s>=40?'s-mid':'s-low');
 
 /* ================================================================
-   1. CARGA DE DATOS
+   CARGA
    ================================================================ */
 function loadData(){
     loader.classList.remove('hidden');
-    mainContent.classList.add('hidden');
-    const noCache = `?t=${Date.now()}`;
-
-    const parseCSV = (path, delimiter) => new Promise((resolve,reject)=>{
-        Papa.parse(path+noCache, {download:true, header:true, dynamicTyping:false, skipEmptyLines:true, delimiter,
-            complete:({data})=>resolve(data), error:err=>reject(err)});
+    mainContent.querySelectorAll('.tabs, #campaign-view, #newsletter-view, #my-influencers-view, #explore-view').forEach(e=>e.classList.add('hidden'));
+    const noCache=`?t=${Date.now()}`;
+    const parseCSV=(path,delimiter)=>new Promise((res,rej)=>{
+        Papa.parse(path+noCache,{download:true,header:true,dynamicTyping:false,skipEmptyLines:true,delimiter,complete:({data})=>res(data),error:rej});
     });
-
     Promise.all([
-        parseCSV('data/influencers.csv', ','),
-        parseCSV('data/campaigns.csv', ','),
-        parseCSV('data/misinflus.csv', ','),
-        parseCSV('data/newsletters.csv', ',')
-    ]).then(([inf, camp, mis, nl])=>{
-        influencersData = inf.map(r=>({...r, followers:num(r.followers), likesAvg:num(r.likesAvg), commentsAvg:num(r.commentsAvg)}));
-        campaignsData = processCampaigns(camp);
-        myInfluencersRawData = mis;
-        newslettersData = processNewsletters(nl);
+        parseCSV('data/influencers.csv',','),
+        parseCSV('data/campaigns.csv',','),
+        parseCSV('data/misinflus.csv',','),
+        parseCSV('data/newsletters.csv',',')
+    ]).then(([inf,camp,mis,nl])=>{
+        influencersData=inf.map(r=>({...r,followers:num(r.followers),likesAvg:num(r.likesAvg),commentsAvg:num(r.commentsAvg)}));
+        campaignsData=processCampaigns(camp);
+        myInfluencersRawData=mis;
+        newslettersData=processNewsletters(nl);
         processMyInfluencersData();
         initApp();
     }).catch(err=>{
         console.error(err);
         loader.classList.add('hidden');
-        mainContent.classList.remove('hidden');
-        alert('Error cargando datos. Revisa que los CSV estén en /data y abras la app desde un servidor (no file://).');
+        alert('Error cargando datos. Comprueba que los CSV estén en /data y que la app se sirva desde un servidor.');
     });
 }
 
-function processCampaigns(rows){
-    return rows.filter(r=>r.Id!=null && r.Id!=='').map(c=>{
-        const budget=num(c.Spent), clicks=num(c['Link Clicks']), tickets=num(c['Tickets Sold']);
-        const impressions=num(c.Views), reach=num(c.Reach), ctr=num(c['Click Rate']);
-        const imageFile=c.imageFile||null;
-        const imageUrl=imageFile?`images/${imageFile}`:`https://ui-avatars.com/api/?name=${encodeURIComponent(c.Name)}&background=1f1f1f&color=fff&size=128`;
-        const cpc=clicks>0?budget/clicks:0;
-        const cpa=tickets>0?budget/tickets:0;
-        const cpm=impressions>0?(budget/impressions)*1000:0;
-        let score=(tickets*100)+(clicks*2)+(ctr*50)+(impressions*0.01);
-        if(clicks>0 && cpc<0.5) score+=100;
-        return {id:c.Id, name:c.Name, type:c.Type, budget, impressions, reach, clicks,
-            interactions:num(c.Interactions), retention:num(c['Retention Rate']), clickRate:ctr, ticketsSold:tickets,
-            views3s:num(c['3s Views']), imageUrl, daysActive:num(c['Days Active']), spentPerDay:num(c['Spent Per Day']),
-            frequency:num(c.Frequency), reactions:num(c.Reactions), goal:c.Goal||'N/A', range:c.Range||'N/A',
-            description:`Campaña orientada a ${c.Goal||'rendimiento'} en ${c.Range||'—'}`, cpc, cpa, cpm, score};
-    });
-}
-
-/* ================================================================
-   2. NAVEGACIÓN
-   ================================================================ */
 function initApp(){
     loader.classList.add('hidden');
-    mainContent.classList.remove('hidden');
+    document.querySelector('.tabs').classList.remove('hidden');
     searchBtn.removeAttribute('disabled');
     document.querySelector('.tab[data-tab="campanas"]').click();
 }
 
-function handleTabClick(e){
-    tabs.forEach(t=>t.classList.remove('active'));
-    e.target.classList.add('active');
-    [exploreView,campaignView,newsletterView,myInfluencersView].forEach(v=>v.classList.add('hidden'));
-    const t=e.target.dataset.tab;
-    if(t==='explorar'){exploreView.classList.remove('hidden');populateTagFilters();filterInfluencersData();}
-    else if(t==='campanas'){campaignView.classList.remove('hidden');showCampaignView('overview');}
-    else if(t==='newsletters'){newsletterView.classList.remove('hidden');showNewsletterView('overview');}
-    else if(t==='mis-influencers'){myInfluencersView.classList.remove('hidden');handleSubTabClick('influencers');}
+/* ================================================================
+   CAMPAÑAS · procesamiento y scoring
+   ================================================================ */
+function processCampaigns(rows){
+    const base=rows.filter(r=>r.Id!=null&&String(r.Id).trim()!=='').map(c=>{
+        const budget=num(c.Spent),clicks=num(c['Link Clicks']),impressions=num(c.Views),reach=num(c.Reach);
+        const ctr=num(c['Click Rate']),retention=num(c['Retention Rate']),frequency=num(c.Frequency);
+        const imageFile=(c.imageFile||'').trim();
+        return {
+            id:c.Id,name:c.Name,type:c.Type||'—',budget,impressions,reach,clicks,
+            interactions:num(c.Interactions),retention,clickRate:ctr,
+            views3s:num(c['3s Views']),
+            imageUrl:imageFile?`images/${imageFile}`:null,
+            daysActive:num(c['Days Active']),spentPerDay:num(c['Spent Per Day']),
+            frequency,reactions:num(c.Reactions),goal:c.Goal||'—',range:c.Range||'—',
+            cpc:clicks>0?budget/clicks:Infinity,
+            cpm:impressions>0?(budget/impressions)*1000:Infinity,
+            reachPerEuro:budget>0?reach/budget:0
+        };
+    });
+    // Índice de Eficiencia: percentiles ponderados
+    const cpcs=base.map(c=>c.cpc), ctrs=base.map(c=>c.clickRate), cpms=base.map(c=>c.cpm);
+    const rets=base.filter(c=>c.retention>0).map(c=>c.retention);
+    base.forEach(c=>{
+        const pCPC=percentile(c.cpc,cpcs,false);
+        const pCTR=percentile(c.clickRate,ctrs,true);
+        const pCPM=percentile(c.cpm,cpms,false);
+        const hasRet=c.retention>0;
+        const pRET=hasRet?percentile(c.retention,rets,true):null;
+        // Frecuencia: 100 dentro de 1,2–1,8; decae linealmente fuera
+        let pFREQ;
+        if(c.frequency>=1.2&&c.frequency<=1.8)pFREQ=100;
+        else if(c.frequency<1.2)pFREQ=Math.max(0,100-(1.2-c.frequency)*120);
+        else pFREQ=Math.max(0,100-(c.frequency-1.8)*45);
+        // Pesos; si no hay retención, su peso se reparte
+        let score, parts;
+        if(hasRet){
+            score=pCPC*.30+pCTR*.25+pCPM*.15+pRET*.15+pFREQ*.15;
+            parts=[{label:'CPC (coste por clic)',w:30,p:pCPC},{label:'CTR',w:25,p:pCTR},{label:'CPM',w:15,p:pCPM},{label:'Retención de vídeo',w:15,p:pRET},{label:'Frecuencia óptima',w:15,p:pFREQ}];
+        }else{
+            score=pCPC*.36+pCTR*.30+pCPM*.18+pFREQ*.16;
+            parts=[{label:'CPC (coste por clic)',w:36,p:pCPC},{label:'CTR',w:30,p:pCTR},{label:'CPM',w:18,p:pCPM},{label:'Frecuencia óptima',w:16,p:pFREQ}];
+        }
+        c.score=Math.round(score);
+        c.scoreParts=parts;
+    });
+    return base;
 }
 
-function destroyCharts(){for(const id in charts){if(charts[id]){charts[id].destroy();delete charts[id];}}}
+function campaignBenchmarks(){
+    const all=campaignsData;
+    const p75=q(all.map(c=>c.score),0.75);
+    const top=all.filter(c=>c.score>=p75);
+    const row=(name,desc,topArr,allArr,fmt,lowerBetter=false)=>{
+        const t=median(topArr), a=mean(allArr.filter(isFinite));
+        const diff=a!==0?((lowerBetter?(a-t):(t-a))/Math.abs(a))*100:0;
+        return {name,desc,target:fmt(t),avg:fmt(a),diff};
+    };
+    return {
+        n:top.length,total:all.length,
+        rows:[
+            row('Inversión diaria','€ por día de campaña',top.map(c=>c.spentPerDay),all.map(c=>c.spentPerDay),v=>fmtEUR2(v)+'/día'),
+            row('Duración','días activos',top.map(c=>c.daysActive),all.map(c=>c.daysActive),v=>Math.round(v)+' días'),
+            row('CPC objetivo','coste por clic',top.map(c=>c.cpc).filter(isFinite),all.map(c=>c.cpc).filter(isFinite),fmtEUR2,true),
+            row('CTR objetivo','ratio de clics',top.map(c=>c.clickRate),all.map(c=>c.clickRate),v=>v.toFixed(2).replace('.',',')+'%'),
+            row('CPM objetivo','coste por mil impresiones',top.map(c=>c.cpm).filter(isFinite),all.map(c=>c.cpm).filter(isFinite),fmtEUR2,true),
+            row('Frecuencia','impactos por persona',top.map(c=>c.frequency),all.map(c=>c.frequency),v=>v.toFixed(2).replace('.',','),true)
+        ]
+    };
+}
 
-/* ================================================================
-   3. CAMPAÑAS
-   ================================================================ */
 function showCampaignView(view,params={}){
     campaignOverviewView.classList.add('hidden');
     campaignDetailView.classList.add('hidden');
     if(view==='overview'){renderCampaignOverview();campaignOverviewView.classList.remove('hidden');}
     else{renderCampaignDetail(params.id);campaignDetailView.classList.remove('hidden');}
+    window.scrollTo({top:0});
 }
 
-function renderCampaignInsights(){
-    const el=document.getElementById('campaign-insights');
-    const valid=campaignsData.filter(c=>c.budget>0);
-    if(!valid.length){el.innerHTML='';return;}
-
-    // Mejor CPA (coste por ticket)
-    const withTickets=valid.filter(c=>c.ticketsSold>0);
-    const bestCPA=[...withTickets].sort((a,b)=>a.cpa-b.cpa)[0];
-    // Eficiencia: coste/día vs tickets/día -> mejor coste por día recomendado
-    const perDay=withTickets.filter(c=>c.daysActive>0).map(c=>({...c, ticketsPerDay:c.ticketsSold/c.daysActive, costPerTicketDay:c.spentPerDay/(c.ticketsSold/c.daysActive||1)}));
-    const bestEff=[...perDay].sort((a,b)=>a.costPerTicketDay-b.costPerTicketDay)[0];
-    // Coste/día recomendado: media ponderada del spentPerDay de las campañas top-quartile por CPA
-    const rankedCPA=[...withTickets].sort((a,b)=>a.cpa-b.cpa);
-    const topQuartile=rankedCPA.slice(0,Math.max(1,Math.ceil(rankedCPA.length*0.25)));
-    const recSpendDay=topQuartile.reduce((s,c)=>s+c.spentPerDay,0)/topQuartile.length;
-    const recDays=Math.round(topQuartile.reduce((s,c)=>s+c.daysActive,0)/topQuartile.length);
-    // Peor: CPA más alto entre las que gastaron algo relevante
-    const worst=[...withTickets].filter(c=>c.budget>50).sort((a,b)=>b.cpa-a.cpa)[0];
-    // Frecuencia media -> alerta de saturación
-    const avgFreq=valid.reduce((s,c)=>s+c.frequency,0)/valid.length;
-    const saturated=valid.filter(c=>c.frequency>2).length;
-
-    const cards=[];
-    if(bestEff) cards.push({cls:'good',icon:'⚡',title:'Coste/día más rentable',headline:fmtEUR2(bestEff.spentPerDay)+'/día',detail:`<strong>${bestEff.name}</strong> logró ${fmtEUR2(bestEff.cpa)} por ticket. Tu punto dulce de inversión diaria.`});
-    cards.push({cls:'good',icon:'🎯',title:'Presupuesto diario recomendado',headline:fmtEUR2(recSpendDay)+'/día',detail:`Media del 25% de campañas con mejor CPA, activas ~<strong>${recDays} días</strong>. Úsalo como base para nuevas campañas.`});
-    if(bestCPA) cards.push({cls:'good',icon:'🏆',title:'Mejor conversión (CPA)',headline:fmtEUR2(bestCPA.cpa)+'/ticket',detail:`<strong>${bestCPA.name}</strong> — ${bestCPA.ticketsSold} tickets con ${fmtEUR(bestCPA.budget)} invertidos.`});
-    if(worst) cards.push({cls:'bad',icon:'🚩',title:'Revisar / pausar',headline:fmtEUR2(worst.cpa)+'/ticket',detail:`<strong>${worst.name}</strong> tiene el CPA más alto (${fmtEUR(worst.budget)} gastados). Candidata a optimizar creatividad o segmentación.`});
-    cards.push({cls:saturated>2?'warn':'good',icon:'📡',title:'Salud de frecuencia',headline:avgFreq.toFixed(2)+'x',detail:`${saturated} campaña(s) superan frecuencia 2x (riesgo de fatiga de audiencia). Ideal mantener entre 1,2–1,8x.`});
-
-    el.innerHTML=cards.map(c=>`<div class="insight-card ${c.cls}"><div class="insight-icon">${c.icon}</div><div class="insight-title">${c.title}</div><div class="insight-headline">${c.headline}</div><div class="insight-detail">${c.detail}</div></div>`).join('');
+function benchTableHTML(bench){
+    const head='<thead><tr><th>Métrica</th><th>Valor óptimo</th><th>Media actual</th><th>Diferencial</th></tr></thead>';
+    const body='<tbody>'+bench.rows.map(r=>{
+        const cls=r.diff>=8?'good':(r.diff<=-8?'bad':'neutral');
+        const arrow=r.diff>=0?'+':'−';
+        return `<tr><td class="metric-name">${r.name}<span>${r.desc}</span></td><td class="target">${r.target}</td><td>${r.avg}</td><td><span class="delta ${cls}">${arrow}${Math.abs(r.diff).toFixed(0)}%</span></td></tr>`;
+    }).join('')+'</tbody>';
+    return head+body;
 }
 
 function renderCampaignOverview(){
-    if(!campaignsData.length) return;
-    renderCampaignInsights();
-    const count=campaignsData.length;
-    const totalSpent=campaignsData.reduce((a,c)=>a+c.budget,0);
-    const totalClicks=campaignsData.reduce((a,c)=>a+c.clicks,0);
-    const avgCTR=campaignsData.reduce((a,c)=>a+c.clickRate,0)/count;
-    const avgReach=campaignsData.reduce((a,c)=>a+c.reach,0)/count;
-    const avgRet=campaignsData.reduce((a,c)=>a+c.retention,0)/count;
-    const avgFreq=campaignsData.reduce((a,c)=>a+c.frequency,0)/count;
+    if(!campaignsData.length)return;
+    const all=campaignsData;
+    const totalSpent=all.reduce((s,c)=>s+c.budget,0);
+    const totalClicks=all.reduce((s,c)=>s+c.clicks,0);
+    const totalImpr=all.reduce((s,c)=>s+c.impressions,0);
+    const totalReach=all.reduce((s,c)=>s+c.reach,0);
+    const wCTR=totalImpr>0?totalClicks/totalImpr*100:0;
+    const wCPC=totalClicks>0?totalSpent/totalClicks:0;
+    const wCPM=totalImpr>0?totalSpent/totalImpr*1000:0;
 
-    document.getElementById('global-spent').innerText=fmtEUR(totalSpent);
-    document.getElementById('global-ctr').innerText=avgCTR.toFixed(2)+'%';
-    document.getElementById('global-reach').innerText=fmtNum(avgReach);
-    document.getElementById('global-clicks').innerText=fmtNum(totalClicks);
-    document.getElementById('global-retention').innerText=avgRet.toFixed(2)+'%';
-    document.getElementById('global-frequency').innerText=avgFreq.toFixed(2);
+    document.getElementById('campaign-kpis').innerHTML=[
+        {l:'Inversión total',v:fmtEUR(totalSpent),s:all.length+' campañas'},
+        {l:'Impresiones',v:fmtK(totalImpr),s:'Alcance '+fmtK(totalReach)},
+        {l:'Clics totales',v:fmtNum(totalClicks),s:''},
+        {l:'CTR ponderado',v:wCTR.toFixed(2).replace('.',',')+'%',s:'clics / impresiones'},
+        {l:'CPC medio',v:fmtEUR2(wCPC),s:'inversión / clics'},
+        {l:'CPM medio',v:fmtEUR2(wCPM),s:'por mil impresiones'}
+    ].map(k=>`<div class="kpi-cell"><span class="micro-label">${k.l}</span><div class="val">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
+
+    const bench=campaignBenchmarks();
+    document.getElementById('bench-note').innerText=`Basado en las ${bench.n} campañas top de ${bench.total}`;
+    document.getElementById('bench-table').innerHTML=benchTableHTML(bench);
 
     const sortKey=campaignSortFilter.value;
-    const asc=(sortKey==='cpc'||sortKey==='cpm'||sortKey==='cpa'); // menor mejor
-    const chrono=[...campaignsData].sort((a,b)=>a.id-b.id);
-    const labels={score:'Puntuación',ticketsSold:'Tickets',impressions:'Impresiones',clickRate:'CTR (%)',reach:'Alcance',budget:'Inversión (€)',cpc:'CPC (€)',cpm:'CPM (€)',cpa:'CPA (€)',frequency:'Frecuencia'};
+    const labels={score:'Índice de Eficiencia',clickRate:'CTR (%)',cpc:'CPC (€)',cpm:'CPM (€)',retention:'Retención (%)',impressions:'Impresiones',reach:'Alcance',clicks:'Clics',budget:'Inversión (€)',frequency:'Frecuencia'};
+    document.getElementById('campaign-chart-title').innerText=labels[sortKey]+' por campaña (orden cronológico)';
+    document.getElementById('campaign-rank-sub').innerText='Ordenado por '+labels[sortKey];
 
+    const chrono=[...all].sort((a,b)=>a.id-b.id);
     destroyCharts();
-    charts.global=new Chart(document.getElementById('all-campaigns-chart'),{type:'line',
-        data:{labels:chrono.map(c=>c.name),datasets:[{label:labels[sortKey]||sortKey,data:chrono.map(c=>c[sortKey]),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.2)',borderWidth:3,pointBackgroundColor:'#fff',tension:.3,fill:true}]},
-        options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},scales:{x:{ticks:{color:'#aaa'}},y:{ticks:{color:'#aaa'},grid:{color:'#333'}}},plugins:{legend:{labels:{color:'#fff'}}}}});
+    Chart.defaults.font.family="'Inter',sans-serif";
+    Chart.defaults.font.size=11;
+    charts.global=new Chart(document.getElementById('all-campaigns-chart'),{type:'bar',
+        data:{labels:chrono.map(c=>truncate(c.name,16)),datasets:[{label:labels[sortKey],data:chrono.map(c=>isFinite(c[sortKey])?c[sortKey]:0),backgroundColor:'rgba(229,72,77,.55)',hoverBackgroundColor:'rgba(229,72,77,.85)',borderRadius:3,maxBarThickness:26}]},
+        options:{responsive:true,maintainAspectRatio:false,
+            scales:{x:{ticks:{color:'#5f6672',maxRotation:60},grid:{display:false}},y:{ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}}},
+            plugins:{legend:{display:false}}}});
 
-    const sorted=[...campaignsData].filter(c=>!asc||c[sortKey]>0).sort((a,b)=>asc?a[sortKey]-b[sortKey]:(b[sortKey]||0)-(a[sortKey]||0));
-    const podium=sorted.slice(0,3), rest=sorted.slice(3);
-    const disp=(c,k)=>{
-        if(k==='ticketsSold')return c.ticketsSold+' Tickets';
-        if(k==='score')return c.score.toFixed(0)+' Pts';
-        if(k==='reach')return (c.reach/1000).toFixed(1)+'k Alcance';
-        if(k==='clickRate')return c.clickRate.toFixed(2)+'% CTR';
-        if(k==='budget')return fmtEUR(c.budget)+' Inv.';
-        if(k==='cpc')return fmtEUR2(c.cpc)+' CPC';
-        if(k==='cpm')return fmtEUR2(c.cpm)+' CPM';
-        if(k==='cpa')return fmtEUR2(c.cpa)+' CPA';
-        if(k==='impressions')return (c.impressions/1000).toFixed(0)+'k Impr.';
-        if(k==='frequency')return c.frequency.toFixed(2)+' Freq';
-        return c[k];
+    const asc=(sortKey==='cpc'||sortKey==='cpm');
+    const sorted=[...all].filter(c=>!asc||isFinite(c[sortKey])).sort((a,b)=>asc?a[sortKey]-b[sortKey]:(b[sortKey]||0)-(a[sortKey]||0));
+    const disp=c=>{
+        const v=c[sortKey];
+        if(sortKey==='score')return null; // score badge already shown
+        if(sortKey==='cpc'||sortKey==='cpm'||sortKey==='budget')return fmtEUR2(v);
+        if(sortKey==='clickRate')return v.toFixed(2).replace('.',',')+'%';
+        if(sortKey==='retention')return v.toFixed(1).replace('.',',')+'%';
+        if(sortKey==='frequency')return v.toFixed(2).replace('.',',');
+        return fmtK(v);
     };
-    const podiumHTML=`<div class="podium-container">${podium.map((c,i)=>`<div class="podium-item podium-item--${i+1}" data-id="${c.id}" style="background-image:url('${c.imageUrl}')"><div class="podium-rank">${i+1}</div><div class="podium-name">${c.name}</div><div class="podium-metric">${disp(c,sortKey)}</div></div>`).join('')}</div>`;
-    const listHTML=rest.length?`<div><h3>Resto de campañas</h3>${rest.map(c=>`<div class="campaign-list-item" data-id="${c.id}"><img src="${c.imageUrl}" class="campaign-list-thumbnail" alt="${c.name}"><div class="info"><h4>${c.name}</h4><p class="text-secondary">${c.type||'—'} • ${c.goal}</p></div><div class="metric-group"><div class="metric-col"><span class="metric-val">${c.ticketsSold}</span><span class="metric-lbl">Tickets</span></div><div class="metric-col"><span class="metric-val">${fmtEUR2(c.cpa)}</span><span class="metric-lbl">CPA</span></div><div class="metric-col"><span class="metric-val">${disp(c,sortKey)}</span><span class="metric-lbl">${labels[sortKey]||'Valor'}</span></div></div></div>`).join('')}</div>`:'';
-    campaignOverviewContent.innerHTML=podiumHTML+listHTML;
-    document.querySelectorAll('.podium-item,.campaign-list-item').forEach(el=>el.onclick=()=>showCampaignView('detail',{id:el.dataset.id}));
+    document.getElementById('campaign-rank-list').innerHTML=sorted.map((c,i)=>{
+        const thumb=c.imageUrl?`<img src="${c.imageUrl}" class="rank-thumb" alt="" onerror="this.outerHTML='<div class=\\'rank-thumb letter\\'>${(c.name||'?')[0]}</div>'">`:`<div class="rank-thumb letter">${(c.name||'?')[0]}</div>`;
+        const extra=disp(c);
+        return `<div class="rank-row ${i<3?'top':''}" data-id="${c.id}">
+            <div class="rank-num">${String(i+1).padStart(2,'0')}</div>
+            ${thumb}
+            <div class="rank-main"><h4>${c.name}</h4><p>${c.type} · ${c.goal} · ${c.daysActive} días · ${fmtEUR2(c.spentPerDay)}/día</p></div>
+            <div class="rank-metrics">
+                <div class="rank-metric"><div class="v">${c.clickRate.toFixed(2).replace('.',',')}%</div><div class="l">CTR</div></div>
+                <div class="rank-metric"><div class="v">${isFinite(c.cpc)?fmtEUR2(c.cpc):'—'}</div><div class="l">CPC</div></div>
+                ${extra!==null?`<div class="rank-metric"><div class="v">${extra}</div><div class="l">${labels[sortKey]}</div></div>`:''}
+                <div class="score-badge ${scoreClass(c.score)}">${c.score}</div>
+            </div>
+        </div>`;
+    }).join('');
+    document.querySelectorAll('#campaign-rank-list .rank-row').forEach(el=>el.onclick=()=>showCampaignView('detail',{id:el.dataset.id}));
 }
 
 function renderCampaignDetail(id){
     destroyCharts();
-    const c=campaignsData.find(x=>x.id==id); if(!c)return;
-    const good=c.cpa>0&&c.cpa<2, cls=c.cpa===0?'neutral':(good?'good':(c.cpa<5?'neutral':'bad'));
-    const statusText=c.cpa===0?'Sin conversión':(good?'Éxito':'Revisar'), statusCls=good?'':(c.cpa<5?'neutral':'bad');
-    campaignDetailView.innerHTML=`<div class="campaign-header"><button class="btn btn-secondary" onclick="showCampaignView('overview')">← Volver al Ranking</button></div>
-    <div class="campaign-detail-hero" style="background-image:url('${c.imageUrl}')"><div class="campaign-hero-content"><div class="campaign-hero-title"><h2>${c.name}</h2><p>${c.description}</p></div><div class="campaign-status-badge ${statusCls}">Estado: ${statusText}</div></div></div>
-    <div class="campaign-detail-main-grid"><div><div class="kpi-grid">
-    <div class="kpi-card-small"><div class="kpi-title">🎟️ Tickets Vendidos</div><div class="kpi-value">${c.ticketsSold}</div><div class="kpi-eval good">Conversión final</div></div>
-    <div class="kpi-card-small"><div class="kpi-title">💸 Coste por Ticket (CPA)</div><div class="kpi-value">${fmtEUR2(c.cpa)}</div><div class="kpi-eval ${cls}">${cls==='good'?'Eficiente':(cls==='neutral'?'Ajustado':'Alto coste')}</div></div>
-    <div class="kpi-card-small"><div class="kpi-title">🖱️ Clicks Totales</div><div class="kpi-value">${fmtNum(c.clicks)}</div><div class="kpi-eval neutral">CTR: ${c.clickRate.toFixed(2)}%</div></div>
-    <div class="kpi-card-small"><div class="kpi-title">👁️ Visualizaciones</div><div class="kpi-value">${fmtNum(c.impressions)}</div><div class="kpi-eval">Alcance: ${fmtNum(c.reach)}</div></div>
-    </div><div class="chart-wrapper"><canvas id="funnel-chart"></canvas></div></div>
-    <div><div class="kpi-card-small" style="margin-bottom:20px"><div class="kpi-title">Inversión Total</div><div class="kpi-value" style="color:var(--primary)">${fmtEUR2(c.budget)}</div><div class="text-secondary" style="font-size:.8rem;margin-top:5px">${c.daysActive} días activos (${fmtEUR2(c.spentPerDay)}/día) · CPC ${fmtEUR2(c.cpc)} · CPM ${fmtEUR2(c.cpm)}</div></div>
-    <h3 style="margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:5px">Engagement</h3><div class="kpi-card-small"><div class="stat-row"><span>Reacciones</span><span>${c.reactions}</span></div><div class="stat-row" style="margin-top:10px"><span>Interacciones</span><span>${fmtNum(c.interactions)}</span></div><div class="stat-row" style="margin-top:10px"><span>Retención</span><span>${c.retention}%</span></div></div>
-    <h3 style="margin-top:20px;margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:5px">Segmentación</h3><div style="background:var(--bg-input);padding:15px;border-radius:10px"><p style="margin-bottom:5px"><strong>Objetivo:</strong> ${c.goal}</p><p><strong>Rango:</strong> ${c.range}</p></div></div></div>`;
-    charts.funnel=new Chart(document.getElementById('funnel-chart'),{type:'bar',data:{labels:['Impresiones','Alcance','Clics','Tickets'],datasets:[{label:'Conversión',data:[c.impressions,c.reach,c.clicks,c.ticketsSold],backgroundColor:['#7f1d1d','#b91c1c','#ef4444','#22c55e']}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Embudo de Conversión',color:'#aaa'}},scales:{x:{ticks:{color:'#aaa'},type:'logarithmic'},y:{ticks:{color:'#fff'}}}}});
+    const c=campaignsData.find(x=>x.id==id);if(!c)return;
+    const all=campaignsData;
+    const avgCTR=mean(all.map(x=>x.clickRate)), avgCPC=mean(all.map(x=>x.cpc).filter(isFinite)), avgCPM=mean(all.map(x=>x.cpm).filter(isFinite));
+    const cmp=(v,avg,lowerBetter=false)=>{
+        if(!isFinite(v)||avg===0)return '';
+        let diff=(v-avg)/avg*100; if(lowerBetter)diff=-diff;
+        const cls=diff>=5?'good':(diff<=-5?'bad':'neutral');
+        return `<div class="cmp ${cls}">${diff>=0?'+':'−'}${Math.abs(diff).toFixed(0)}% vs media</div>`;
+    };
+    const st=c.score>=66?['good','Alto rendimiento']:(c.score>=40?['neutral','Rendimiento medio']:['bad','Bajo rendimiento']);
+
+    campaignDetailView.innerHTML=`
+    <div class="detail-head">
+        <button class="btn" onclick="showCampaignView('overview')">← Volver al ranking</button>
+    </div>
+    ${c.imageUrl?`<img src="${c.imageUrl}" class="detail-hero-img" alt="" onerror="this.remove()">`:''}
+    <div class="detail-head">
+        <div class="title-block">
+            <h2>${c.name}</h2>
+            <p>${c.type} · Objetivo: ${c.goal} · Segmento: ${c.range}</p>
+        </div>
+        <span class="status-chip ${st[0]}">${st[1]} · ${c.score}/100</span>
+    </div>
+    <div class="detail-grid">
+        <div>
+            <div class="stat-grid">
+                <div class="stat-card"><span class="micro-label">CTR</span><div class="val">${c.clickRate.toFixed(2).replace('.',',')}%</div>${cmp(c.clickRate,avgCTR)}</div>
+                <div class="stat-card"><span class="micro-label">CPC</span><div class="val">${isFinite(c.cpc)?fmtEUR2(c.cpc):'—'}</div>${cmp(c.cpc,avgCPC,true)}</div>
+                <div class="stat-card"><span class="micro-label">CPM</span><div class="val">${isFinite(c.cpm)?fmtEUR2(c.cpm):'—'}</div>${cmp(c.cpm,avgCPM,true)}</div>
+                <div class="stat-card"><span class="micro-label">Frecuencia</span><div class="val">${c.frequency.toFixed(2).replace('.',',')}</div><div class="cmp ${c.frequency>=1.2&&c.frequency<=1.8?'good':(c.frequency>2.2?'bad':'neutral')}">${c.frequency>=1.2&&c.frequency<=1.8?'En rango óptimo (1,2–1,8)':(c.frequency>1.8?'Riesgo de fatiga':'Baja repetición')}</div></div>
+            </div>
+            <div class="chart-card" style="margin-bottom:0">
+                <div class="chart-title">Embudo de medios</div>
+                <div class="chart-body"><canvas id="funnel-chart"></canvas></div>
+            </div>
+        </div>
+        <div>
+            <div class="side-card">
+                <h3>Inversión</h3>
+                <div class="kv-row"><span>Total invertido</span><span>${fmtEUR2(c.budget)}</span></div>
+                <div class="kv-row"><span>Días activos</span><span>${c.daysActive}</span></div>
+                <div class="kv-row"><span>Inversión / día</span><span>${fmtEUR2(c.spentPerDay)}</span></div>
+                <div class="kv-row"><span>Alcance por €</span><span>${fmtNum(c.reachPerEuro)}</span></div>
+            </div>
+            <div class="side-card">
+                <h3>Desglose del índice</h3>
+                ${c.scoreParts.map(p=>`<div class="score-bar-row"><div class="sb-head"><span>${p.label} · peso ${p.w}%</span><span>P${Math.round(p.p)}</span></div><div class="sb-track"><div class="sb-fill" style="width:${p.p}%"></div></div></div>`).join('')}
+                <p style="font-size:.72rem;color:var(--text-3);margin-top:12px;line-height:1.5">Cada barra es el percentil de la campaña frente a las demás. El índice es la media ponderada. Mide eficiencia de medios; las campañas de Meta no registran ventas de tickets.</p>
+            </div>
+            <div class="side-card">
+                <h3>Engagement</h3>
+                <div class="kv-row"><span>Interacciones</span><span>${fmtNum(c.interactions)}</span></div>
+                <div class="kv-row"><span>Reacciones</span><span>${fmtNum(c.reactions)}</span></div>
+                <div class="kv-row"><span>Vistas 3s</span><span>${fmtNum(c.views3s)}</span></div>
+                <div class="kv-row"><span>Retención</span><span>${c.retention?c.retention.toFixed(1).replace('.',',')+'%':'—'}</span></div>
+            </div>
+        </div>
+    </div>`;
+    charts.funnel=new Chart(document.getElementById('funnel-chart'),{type:'bar',
+        data:{labels:['Impresiones','Alcance','Clics'],datasets:[{data:[c.impressions,c.reach,c.clicks],backgroundColor:['rgba(229,72,77,.35)','rgba(229,72,77,.6)','rgba(229,72,77,.9)'],borderRadius:4,maxBarThickness:34}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+            scales:{x:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},y:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
 }
 
 /* ================================================================
-   4. NEWSLETTERS  (NUEVO MÓDULO)
+   NEWSLETTERS
    ================================================================ */
 function processNewsletters(rows){
-    return rows.filter(r=>r.Id && String(r.Id).trim()!=='').map(r=>{
-        const recipients=num(r.Destinatarios), opens=num(r.Aperturas), clicks=num(r.Clicks);
-        const uniqueClicks=num(r['DCh.']), tickets=num(r.tickets), revenue=num(r.precio);
-        const openRate=num(r['Open rate']), ctr=num(r.CTR), attribution=num(r['Atribution Rate']);
+    const base=rows.filter(r=>r.Id&&String(r.Id).trim()!=='').map(r=>{
+        const recipients=num(r.Destinatarios),opens=num(r.Aperturas),clicks=num(r.Clicks);
+        const uniqueClicks=num(r['DCh.']),tickets=num(r.tickets),revenue=num(r.precio);
+        const openRate=num(r['Open rate']),ctr=num(r.CTR),attribution=num(r['Atribution Rate']);
         const subject=(r.Asunto||'').trim();
         const date=parseFechaES(r.Fecha);
-        // click-to-open rate
         const cto=opens>0?clicks/opens:0;
-        // ingreso por mil envíos y por mil aperturas
         const revPerMille=recipients>0?(revenue/recipients)*1000:0;
         const revPerOpen=opens>0?revenue/opens:0;
-        // conversión: tickets / clicks
-        const clickToTicket=clicks>0?tickets/clicks:0;
-        // detección de tests / envíos técnicos
-        const isTest=/^test\b|sin asunto|smtp\+|no-reply|s\d{4,}_/i.test(subject) || recipients<700;
-
-        // SCORE: prioriza ingreso real ponderado por eficiencia de embudo, penaliza open rates anómalos
-        // normalizamos suavemente
-        let score = revenue*1.0 + tickets*8 + (revPerMille*30) + (openRate*100) + (ctr*400) + (attribution*40);
-        return {id:r.Id, subject, date, dateStr:r.Fecha, recipients, opens, clicks, uniqueClicks, tickets, revenue,
-            openRate, ctr, attribution, cto, revPerMille, revPerOpen, clickToTicket, isTest, score};
+        const isTest=/^test\b|sin asunto|smtp\+|no-reply|s\d{4,}_/i.test(subject)||recipients<700;
+        return {id:r.Id,subject,date,dateStr:r.Fecha,recipients,opens,clicks,uniqueClicks,tickets,revenue,openRate,ctr,attribution,cto,revPerMille,revPerOpen,isTest};
     }).filter(n=>n.recipients>0);
+    // Índice de Rendimiento (percentiles sobre envíos no-test)
+    const ref=base.filter(n=>!n.isTest);
+    const rpms=ref.map(n=>n.revPerMille),revs=ref.map(n=>n.revenue),ops=ref.map(n=>n.openRate),ctos=ref.map(n=>n.cto),atts=ref.map(n=>n.attribution);
+    base.forEach(n=>{
+        const parts=[
+            {label:'€ por 1k envíos',w:35,p:percentile(n.revPerMille,rpms)},
+            {label:'Ingresos absolutos',w:20,p:percentile(n.revenue,revs)},
+            {label:'Open rate',w:15,p:percentile(n.openRate,ops)},
+            {label:'Click-to-open',w:15,p:percentile(n.cto,ctos)},
+            {label:'Attribution rate',w:15,p:percentile(n.attribution,atts)}
+        ];
+        n.score=Math.round(parts.reduce((s,x)=>s+x.p*x.w/100,0));
+        n.scoreParts=parts;
+    });
+    return base;
 }
 
-function activeNewsletters(){
-    return nlShowTests.checked ? newslettersData : newslettersData.filter(n=>!n.isTest);
+function activeNewsletters(){return nlShowTests.checked?newslettersData:newslettersData.filter(n=>!n.isTest);}
+
+function nlBenchmarks(list){
+    const p75=q(list.map(n=>n.revPerMille),0.75);
+    const top=list.filter(n=>n.revPerMille>=p75);
+    const dowNames=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const byDow={};
+    list.forEach(n=>{if(n.date){const d=n.date.getDay();(byDow[d]=byDow[d]||[]).push(n.revPerMille);}});
+    let bestDow='—',bestVal=-1;
+    Object.entries(byDow).forEach(([d,a])=>{if(a.length>=3){const m=mean(a);if(m>bestVal){bestVal=m;bestDow=dowNames[d];}}});
+    const row=(name,desc,topArr,allArr,fmt,lowerBetter=false)=>{
+        const t=median(topArr),a=mean(allArr);
+        const diff=a!==0?((lowerBetter?(a-t):(t-a))/Math.abs(a))*100:0;
+        return {name,desc,target:fmt(t),avg:fmt(a),diff};
+    };
+    const rows=[
+        row('Rentabilidad','€ por 1.000 envíos',top.map(n=>n.revPerMille),list.map(n=>n.revPerMille),fmtEUR2),
+        row('Open rate','aperturas / envíos',top.map(n=>n.openRate),list.map(n=>n.openRate),v=>fmtPct(v)),
+        row('Click-to-open','clics / aperturas',top.map(n=>n.cto),list.map(n=>n.cto),v=>fmtPct(v)),
+        row('Attribution rate','tickets / clics únicos',top.map(n=>n.attribution),list.map(n=>n.attribution),v=>fmtPct(v)),
+        row('Volumen de envío','destinatarios',top.map(n=>n.recipients),list.map(n=>n.recipients),fmtK)
+    ];
+    return {n:top.length,total:list.length,rows,bestDow,bestVal};
 }
 
 function showNewsletterView(view,params={}){
@@ -291,136 +410,144 @@ function showNewsletterView(view,params={}){
     nlDetailView.classList.add('hidden');
     if(view==='overview'){renderNewsletterOverview();nlOverviewView.classList.remove('hidden');}
     else{renderNewsletterDetail(params.id);nlDetailView.classList.remove('hidden');}
+    window.scrollTo({top:0});
 }
-
-function renderNewsletterInsights(list){
-    const el=document.getElementById('newsletter-insights');
-    if(!list.length){el.innerHTML='';return;}
-
-    // Mejor por ingreso/1k envíos (eficiencia real, independiente del volumen)
-    const bestRPM=[...list].sort((a,b)=>b.revPerMille-a.revPerMille)[0];
-    // Mejor CTOR (calidad del asunto vs contenido)
-    const bestCTO=[...list].filter(n=>n.opens>200).sort((a,b)=>b.cto-a.cto)[0];
-    // Peor open rate con volumen alto -> asunto a mejorar
-    const worstOpen=[...list].filter(n=>n.recipients>20000).sort((a,b)=>a.openRate-b.openRate)[0];
-    // Mejor día de la semana por ingreso medio
-    const byDow={};
-    list.forEach(n=>{if(n.date){const d=n.date.getDay();(byDow[d]=byDow[d]||[]).push(n.revPerMille);}});
-    const dowNames=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-    let bestDow=null,bestDowVal=-1;
-    Object.entries(byDow).forEach(([d,arr])=>{const avg=arr.reduce((s,v)=>s+v,0)/arr.length;if(avg>bestDowVal){bestDowVal=avg;bestDow=d;}});
-    // Detección emoji en asunto -> impacto en open rate
-    const withEmoji=list.filter(n=>/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(n.subject));
-    const noEmoji=list.filter(n=>!/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(n.subject));
-    const emojiOpen=withEmoji.length?withEmoji.reduce((s,n)=>s+n.openRate,0)/withEmoji.length:0;
-    const plainOpen=noEmoji.length?noEmoji.reduce((s,n)=>s+n.openRate,0)/noEmoji.length:0;
-    const emojiLift=plainOpen>0?((emojiOpen-plainOpen)/plainOpen*100):0;
-
-    const cards=[];
-    if(bestRPM) cards.push({cls:'good',icon:'💰',title:'Envío más rentable (por volumen)',headline:fmtEUR2(bestRPM.revPerMille)+' /1k',detail:`"<strong>${truncate(bestRPM.subject,42)}</strong>" generó ${fmtEUR(bestRPM.revenue)} con ${fmtNum(bestRPM.recipients)} envíos.`});
-    if(bestDow!==null) cards.push({cls:'good',icon:'📅',title:'Mejor día para enviar',headline:dowNames[bestDow],detail:`Ingreso medio de <strong>${fmtEUR2(bestDowVal)}/1k envíos</strong>. Prioriza los envíos de mayor valor este día.`});
-    if(bestCTO) cards.push({cls:'good',icon:'🎯',title:'Mejor Click-to-Open',headline:fmtPct(bestCTO.cto,1),detail:`"<strong>${truncate(bestCTO.subject,40)}</strong>" — el contenido conecta con quien abre. Replica su estructura.`});
-    if(Math.abs(emojiLift)>3) cards.push({cls:emojiLift>0?'good':'warn',icon:'😀',title:'Impacto de emojis en asunto',headline:(emojiLift>0?'+':'')+emojiLift.toFixed(0)+'% aperturas',detail:`Los asuntos con emoji ${emojiLift>0?'suben':'bajan'} el open rate frente a los de texto plano (${fmtPct(emojiOpen)} vs ${fmtPct(plainOpen)}).`});
-    if(worstOpen) cards.push({cls:'bad',icon:'📉',title:'Asunto a optimizar (alto volumen)',headline:fmtPct(worstOpen.openRate),detail:`"<strong>${truncate(worstOpen.subject,42)}</strong>" rinde por debajo pese a ${fmtNum(worstOpen.recipients)} envíos. Prueba A/B de asunto.`});
-
-    el.innerHTML=cards.map(c=>`<div class="insight-card ${c.cls}"><div class="insight-icon">${c.icon}</div><div class="insight-title">${c.title}</div><div class="insight-headline">${c.headline}</div><div class="insight-detail">${c.detail}</div></div>`).join('');
-}
-
-function truncate(s,n){return s.length>n?s.substring(0,n-1)+'…':s;}
 
 function renderNewsletterOverview(){
     const list=activeNewsletters();
-    document.getElementById('nl-count').innerText=list.length;
-    if(!list.length){nlOverviewContent.innerHTML='<p class="text-secondary">No hay envíos que mostrar.</p>';return;}
-    renderNewsletterInsights(list);
-
+    if(!list.length)return;
     const sumRecip=list.reduce((s,n)=>s+n.recipients,0);
     const sumOpens=list.reduce((s,n)=>s+n.opens,0);
     const sumClicks=list.reduce((s,n)=>s+n.clicks,0);
     const sumTickets=list.reduce((s,n)=>s+n.tickets,0);
     const sumRev=list.reduce((s,n)=>s+n.revenue,0);
-    document.getElementById('nl-open').innerText=fmtPct(sumRecip>0?sumOpens/sumRecip:0);
-    document.getElementById('nl-ctr').innerText=fmtPct(sumOpens>0?sumClicks/sumOpens:0,2)+' CTOR';
-    document.getElementById('nl-tickets').innerText=fmtNum(sumTickets);
-    document.getElementById('nl-revenue').innerText=fmtEUR(sumRev);
-    document.getElementById('nl-rpm').innerText=fmtEUR2(sumRecip>0?(sumRev/sumRecip)*1000:0);
 
-    // Gráfico tendencia temporal: ingresos por envío (orden cronológico)
+    document.getElementById('nl-kpis').innerHTML=[
+        {l:'Envíos',v:list.length,s:fmtK(sumRecip)+' destinatarios'},
+        {l:'Ingresos atribuidos',v:fmtEUR(sumRev),s:sumTickets.toLocaleString('es-ES')+' tickets'},
+        {l:'€ / 1k envíos',v:fmtEUR2(sumRecip>0?sumRev/sumRecip*1000:0),s:'rentabilidad global'},
+        {l:'Open rate',v:fmtPct(sumRecip>0?sumOpens/sumRecip:0),s:'ponderado'},
+        {l:'Click-to-open',v:fmtPct(sumOpens>0?sumClicks/sumOpens:0),s:'clics / aperturas'},
+        {l:'€ / ticket',v:fmtEUR2(sumTickets>0?sumRev/sumTickets:0),s:'precio medio'}
+    ].map(k=>`<div class="kpi-cell"><span class="micro-label">${k.l}</span><div class="val">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
+
+    const bench=nlBenchmarks(list);
+    document.getElementById('nl-bench-note').innerText=`Top ${bench.n} de ${bench.total} envíos · Mejor día: ${bench.bestDow} (${fmtEUR2(bench.bestVal)}/1k)`;
+    document.getElementById('nl-bench-table').innerHTML=benchTableHTML(bench);
+
     const chrono=[...list].filter(n=>n.date).sort((a,b)=>a.date-b.date);
     destroyCharts();
+    Chart.defaults.font.family="'Inter',sans-serif";
+    Chart.defaults.font.size=11;
     charts.nlTrend=new Chart(document.getElementById('nl-trend-chart'),{
         data:{labels:chrono.map(n=>n.date.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})),
             datasets:[
-                {type:'bar',label:'Ingresos (€)',data:chrono.map(n=>n.revenue),backgroundColor:'rgba(239,68,68,.6)',yAxisID:'y'},
-                {type:'line',label:'Open Rate',data:chrono.map(n=>n.openRate*100),borderColor:'#22c55e',backgroundColor:'transparent',tension:.3,yAxisID:'y1',pointRadius:2}
+                {type:'bar',label:'Ingresos (€)',data:chrono.map(n=>n.revenue),backgroundColor:'rgba(229,72,77,.5)',borderRadius:2,yAxisID:'y',maxBarThickness:14},
+                {type:'line',label:'Open rate (%)',data:chrono.map(n=>n.openRate*100),borderColor:'#46a758',borderWidth:2,pointRadius:0,tension:.35,yAxisID:'y1'}
             ]},
         options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
-            scales:{x:{ticks:{color:'#aaa',maxTicksLimit:14}},y:{position:'left',ticks:{color:'#ef4444'},grid:{color:'#333'},title:{display:true,text:'€',color:'#ef4444'}},y1:{position:'right',ticks:{color:'#22c55e'},grid:{display:false},title:{display:true,text:'Open %',color:'#22c55e'}}},
-            plugins:{legend:{labels:{color:'#fff'}}}}});
+            scales:{x:{ticks:{color:'#5f6672',maxTicksLimit:16},grid:{display:false}},
+                y:{position:'left',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},
+                y1:{position:'right',ticks:{color:'#46a758'},grid:{display:false},border:{display:false}}},
+            plugins:{legend:{labels:{color:'#9aa1ad',boxWidth:10,boxHeight:10}}}}});
 
-    // Ranking
     const key=nlSortFilter.value;
-    const map={score:'score',revenue:'revenue',tickets:'tickets',revPerMille:'revPerMille',openRate:'openRate',ctr:'ctr',cto:'cto',attribution:'attribution',recipients:'recipients'};
-    const sorted=[...list].sort((a,b)=>(b[map[key]]||0)-(a[map[key]]||0));
-    const podium=sorted.slice(0,3), rest=sorted.slice(3);
-    const badge=(n)=>{ // color por eficiencia (revPerMille)
-        const v=n.revPerMille; const cls=v>60?'good':(v>25?'neutral':'bad');
-        return `<span class="score-pill ${cls}">${fmtEUR2(v)}/1k</span>`;
-    };
-    const dispKey=(n)=>{
-        if(key==='revenue')return fmtEUR(n.revenue);
-        if(key==='tickets')return n.tickets+' tickets';
-        if(key==='revPerMille')return fmtEUR2(n.revPerMille)+'/1k';
-        if(key==='openRate')return fmtPct(n.openRate);
-        if(key==='ctr')return fmtPct(n.ctr,2)+' CTR';
-        if(key==='cto')return fmtPct(n.cto,1)+' CTOR';
-        if(key==='attribution')return fmtPct(n.attribution,1);
-        if(key==='recipients')return fmtNum(n.recipients);
-        return n.score.toFixed(0)+' Pts';
-    };
-    const podiumHTML=`<div class="podium-container">${podium.map((n,i)=>`<div class="podium-item podium-item--${i+1}" data-id="${n.id}" style="background:linear-gradient(135deg,var(--bg-input),var(--bg-card))"><div class="podium-rank">${i+1}</div><div class="podium-name">${truncate(n.subject,34)}</div><div class="podium-metric">${dispKey(n)}</div></div>`).join('')}</div>`;
-    const listHTML=rest.length?`<div><h3>Resto de envíos</h3>${rest.map(n=>`<div class="campaign-list-item" data-id="${n.id}"><div class="campaign-list-thumbnail" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem">✉️</div><div class="info"><h4>${truncate(n.subject,60)}</h4><p class="text-secondary">${n.dateStr} • ${fmtNum(n.recipients)} envíos ${n.isTest?'• <span style="color:var(--warning)">TEST</span>':''}</p></div><div class="metric-group"><div class="metric-col"><span class="metric-val">${fmtEUR(n.revenue)}</span><span class="metric-lbl">Ingresos</span></div><div class="metric-col"><span class="metric-val">${n.tickets}</span><span class="metric-lbl">Tickets</span></div><div class="metric-col"><span class="metric-val">${badge(n)}</span><span class="metric-lbl">Eficiencia</span></div></div></div>`).join('')}</div>`:'';
-    nlOverviewContent.innerHTML=podiumHTML+listHTML;
-    document.querySelectorAll('#newsletter-overview-content .podium-item,#newsletter-overview-content .campaign-list-item').forEach(el=>el.onclick=()=>showNewsletterView('detail',{id:el.dataset.id}));
+    const sorted=[...list].sort((a,b)=>(b[key]||0)-(a[key]||0));
+    document.getElementById('nl-rank-list').innerHTML=sorted.map((n,i)=>{
+        return `<div class="rank-row ${i<3?'top':''}" data-id="${n.id}">
+            <div class="rank-num">${String(i+1).padStart(2,'0')}</div>
+            <div class="rank-thumb letter">${(n.subject.replace(/[^\p{L}\p{N}]/gu,'')[0]||'N').toUpperCase()}</div>
+            <div class="rank-main"><h4>${truncate(n.subject,70)}</h4><p>${n.dateStr} · ${fmtK(n.recipients)} destinatarios ${n.isTest?'· <span class="test-tag">test</span>':''}</p></div>
+            <div class="rank-metrics">
+                <div class="rank-metric"><div class="v">${fmtEUR(n.revenue)}</div><div class="l">Ingresos</div></div>
+                <div class="rank-metric"><div class="v">${fmtEUR2(n.revPerMille)}</div><div class="l">€/1k</div></div>
+                <div class="rank-metric"><div class="v">${fmtPct(n.openRate)}</div><div class="l">Open</div></div>
+                <div class="score-badge ${scoreClass(n.score)}">${n.score}</div>
+            </div>
+        </div>`;
+    }).join('');
+    document.querySelectorAll('#nl-rank-list .rank-row').forEach(el=>el.onclick=()=>showNewsletterView('detail',{id:el.dataset.id}));
 }
 
 function renderNewsletterDetail(id){
     destroyCharts();
-    const n=newslettersData.find(x=>x.id==id); if(!n)return;
-    // benchmarks vs media del conjunto activo
-    const list=activeNewsletters();
-    const avgOpen=list.reduce((s,x)=>s+x.openRate,0)/list.length;
-    const avgCTO=list.reduce((s,x)=>s+x.cto,0)/list.length;
-    const avgRPM=list.reduce((s,x)=>s+x.revPerMille,0)/list.length;
-    const cmp=(v,avg)=>{const diff=avg>0?(v-avg)/avg*100:0;const cls=diff>=5?'good':(diff<=-5?'bad':'neutral');return `<span class="${cls}">${diff>=0?'▲':'▼'} ${Math.abs(diff).toFixed(0)}% vs media</span>`;};
-    const good=n.revPerMille>avgRPM, statusText=good?'Alto rendimiento':'Bajo rendimiento', statusCls=good?'':'bad';
+    const n=newslettersData.find(x=>x.id==id);if(!n)return;
+    const list=activeNewsletters().length?activeNewsletters():newslettersData;
+    const avgOpen=mean(list.map(x=>x.openRate)),avgCTO=mean(list.map(x=>x.cto)),avgRPM=mean(list.map(x=>x.revPerMille)),avgAtt=mean(list.map(x=>x.attribution));
+    const cmp=(v,avg)=>{
+        if(avg===0)return '';
+        const diff=(v-avg)/avg*100;
+        const cls=diff>=5?'good':(diff<=-5?'bad':'neutral');
+        return `<div class="cmp ${cls}">${diff>=0?'+':'−'}${Math.abs(diff).toFixed(0)}% vs media</div>`;
+    };
+    const st=n.score>=66?['good','Alto rendimiento']:(n.score>=40?['neutral','Rendimiento medio']:['bad','Bajo rendimiento']);
 
-    nlDetailView.innerHTML=`<div class="campaign-header"><button class="btn btn-secondary" onclick="showNewsletterView('overview')">← Volver al Ranking</button></div>
-    <div class="campaign-detail-hero" style="height:auto;min-height:180px;background:linear-gradient(135deg,var(--primary-dark),var(--bg-card))"><div class="campaign-hero-content" style="align-items:flex-end"><div class="campaign-hero-title"><h2 style="font-size:1.8rem">${n.subject}</h2><p>${n.dateStr} · ${fmtNum(n.recipients)} destinatarios ${n.isTest?'· <span style="color:var(--warning)">Envío test/técnico</span>':''}</p></div><div class="campaign-status-badge ${statusCls}">${statusText}</div></div></div>
-    <div class="campaign-detail-main-grid"><div><div class="kpi-grid">
-    <div class="kpi-card-small"><div class="kpi-title">💰 Ingresos Atribuidos</div><div class="kpi-value">${fmtEUR(n.revenue)}</div><div class="kpi-eval good">${n.tickets} tickets</div></div>
-    <div class="kpi-card-small"><div class="kpi-title">📈 Ingreso / 1k envíos</div><div class="kpi-value">${fmtEUR2(n.revPerMille)}</div><div class="kpi-eval">${cmp(n.revPerMille,avgRPM)}</div></div>
-    <div class="kpi-card-small"><div class="kpi-title">📬 Open Rate</div><div class="kpi-value">${fmtPct(n.openRate)}</div><div class="kpi-eval">${cmp(n.openRate,avgOpen)}</div></div>
-    <div class="kpi-card-small"><div class="kpi-title">🎯 Click-to-Open</div><div class="kpi-value">${fmtPct(n.cto,1)}</div><div class="kpi-eval">${cmp(n.cto,avgCTO)}</div></div>
-    </div><div class="chart-wrapper"><canvas id="nl-funnel-chart"></canvas></div></div>
-    <div><div class="kpi-card-small" style="margin-bottom:20px"><div class="kpi-title">Attribution Rate</div><div class="kpi-value" style="color:var(--primary)">${fmtPct(n.attribution,1)}</div><div class="text-secondary" style="font-size:.8rem;margin-top:5px">Ratio de tickets atribuidos sobre clics únicos</div></div>
-    <h3 style="margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:5px">Embudo</h3><div class="kpi-card-small"><div class="stat-row"><span>Enviados</span><span>${fmtNum(n.recipients)}</span></div><div class="stat-row" style="margin-top:10px"><span>Aperturas</span><span>${fmtNum(n.opens)} (${fmtPct(n.openRate)})</span></div><div class="stat-row" style="margin-top:10px"><span>Clics</span><span>${fmtNum(n.clicks)} (${fmtPct(n.ctr,2)})</span></div><div class="stat-row" style="margin-top:10px"><span>Clics únicos</span><span>${fmtNum(n.uniqueClicks)}</span></div><div class="stat-row" style="margin-top:10px"><span>Tickets</span><span>${n.tickets}</span></div><div class="stat-row" style="margin-top:10px"><span>Ingreso/apertura</span><span>${fmtEUR2(n.revPerOpen)}</span></div></div>
-    <div style="background:var(--bg-input);padding:15px;border-radius:10px;margin-top:20px;font-size:.85rem;line-height:1.5">${nlRecommendation(n,avgOpen,avgCTO,avgRPM)}</div></div></div>`;
-    charts.nlFunnel=new Chart(document.getElementById('nl-funnel-chart'),{type:'bar',data:{labels:['Enviados','Aperturas','Clics','Tickets'],datasets:[{label:'Embudo',data:[n.recipients,n.opens,n.clicks,n.tickets],backgroundColor:['#7f1d1d','#b91c1c','#ef4444','#22c55e']}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Embudo del envío',color:'#aaa'}},scales:{x:{type:'logarithmic',ticks:{color:'#aaa'}},y:{ticks:{color:'#fff'}}}}});
+    nlDetailView.innerHTML=`
+    <div class="detail-head">
+        <button class="btn" onclick="showNewsletterView('overview')">← Volver al ranking</button>
+    </div>
+    <div class="detail-head">
+        <div class="title-block">
+            <h2>${n.subject}</h2>
+            <p>${n.dateStr} · ${fmtNum(n.recipients)} destinatarios ${n.isTest?'· <span class="test-tag">envío test / técnico</span>':''}</p>
+        </div>
+        <span class="status-chip ${st[0]}">${st[1]} · ${n.score}/100</span>
+    </div>
+    <div class="detail-grid">
+        <div>
+            <div class="stat-grid">
+                <div class="stat-card"><span class="micro-label">Ingresos atribuidos</span><div class="val">${fmtEUR(n.revenue)}</div><div class="cmp">${n.tickets} tickets · ${fmtEUR2(n.tickets>0?n.revenue/n.tickets:0)}/ticket</div></div>
+                <div class="stat-card"><span class="micro-label">€ / 1k envíos</span><div class="val">${fmtEUR2(n.revPerMille)}</div>${cmp(n.revPerMille,avgRPM)}</div>
+                <div class="stat-card"><span class="micro-label">Open rate</span><div class="val">${fmtPct(n.openRate)}</div>${cmp(n.openRate,avgOpen)}</div>
+                <div class="stat-card"><span class="micro-label">Click-to-open</span><div class="val">${fmtPct(n.cto)}</div>${cmp(n.cto,avgCTO)}</div>
+            </div>
+            <div class="chart-card" style="margin-bottom:0">
+                <div class="chart-title">Embudo del envío</div>
+                <div class="chart-body"><canvas id="nl-funnel-chart"></canvas></div>
+            </div>
+        </div>
+        <div>
+            <div class="side-card">
+                <h3>Embudo</h3>
+                <div class="kv-row"><span>Enviados</span><span>${fmtNum(n.recipients)}</span></div>
+                <div class="kv-row"><span>Aperturas</span><span>${fmtNum(n.opens)}</span></div>
+                <div class="kv-row"><span>Clics</span><span>${fmtNum(n.clicks)}</span></div>
+                <div class="kv-row"><span>Clics únicos</span><span>${fmtNum(n.uniqueClicks)}</span></div>
+                <div class="kv-row"><span>Tickets</span><span>${n.tickets}</span></div>
+                <div class="kv-row"><span>Attribution rate</span><span>${fmtPct(n.attribution)}</span></div>
+                <div class="kv-row"><span>€ por apertura</span><span>${fmtEUR2(n.revPerOpen)}</span></div>
+            </div>
+            <div class="side-card">
+                <h3>Desglose del índice</h3>
+                ${n.scoreParts.map(p=>`<div class="score-bar-row"><div class="sb-head"><span>${p.label} · peso ${p.w}%</span><span>P${Math.round(p.p)}</span></div><div class="sb-track"><div class="sb-fill" style="width:${p.p}%"></div></div></div>`).join('')}
+                <p style="font-size:.72rem;color:var(--text-3);margin-top:12px;line-height:1.5">Percentil frente al resto de envíos válidos. El índice pondera rentabilidad por volumen sobre todo lo demás.</p>
+            </div>
+            <div class="side-card">
+                <h3>Lectura</h3>
+                <p style="font-size:.8rem;color:var(--text-2);line-height:1.6">${nlReading(n,avgOpen,avgCTO,avgRPM,avgAtt)}</p>
+            </div>
+        </div>
+    </div>`;
+    charts.nlFunnel=new Chart(document.getElementById('nl-funnel-chart'),{type:'bar',
+        data:{labels:['Enviados','Aperturas','Clics','Tickets'],datasets:[{data:[n.recipients,n.opens,n.clicks,n.tickets],backgroundColor:['rgba(229,72,77,.25)','rgba(229,72,77,.45)','rgba(229,72,77,.7)','rgba(70,167,88,.8)'],borderRadius:4,maxBarThickness:34}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+            scales:{x:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},y:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
 }
 
-function nlRecommendation(n,avgOpen,avgCTO,avgRPM){
-    const tips=[];
-    if(n.openRate<avgOpen*0.9) tips.push('📩 <strong>Open rate bajo:</strong> revisa el asunto y el nombre del remitente. Prueba un A/B con y sin emoji.');
-    else tips.push('📩 <strong>Asunto sólido:</strong> el open rate supera la media. Reutiliza su tono.');
-    if(n.cto<avgCTO*0.9) tips.push('🖱️ <strong>Contenido poco clicable:</strong> refuerza el CTA principal y sube el enlace above the fold.');
-    if(n.revPerMille>avgRPM*1.2) tips.push('🚀 <strong>Envío muy rentable:</strong> plantéate reactivarlo con la audiencia que no abrió.');
-    if(n.tickets===0) tips.push('⚠️ <strong>Sin conversión:</strong> este envío no generó tickets; útil solo como branding.');
-    return '<strong style="color:var(--primary)">Recomendaciones</strong><br>'+tips.join('<br>');
+function nlReading(n,avgOpen,avgCTO,avgRPM,avgAtt){
+    const parts=[];
+    if(n.openRate>=avgOpen*1.1)parts.push('El asunto funciona por encima de la media: su estructura y tono son replicables.');
+    else if(n.openRate<avgOpen*0.9)parts.push('El open rate está por debajo de la media: el asunto o el momento de envío no conectaron con la base.');
+    if(n.cto>=avgCTO*1.1)parts.push('Quien abre, hace clic: el contenido y el CTA están bien resueltos.');
+    else if(n.cto<avgCTO*0.9)parts.push('Se abre pero no se hace clic: conviene revisar la jerarquía del contenido y la posición del CTA.');
+    if(n.revPerMille>=avgRPM*1.3)parts.push('Rentabilidad muy superior a la media: candidato a reenvío sobre no-abridores.');
+    if(n.tickets===0)parts.push('No generó tickets atribuidos: su valor es de notoriedad, no de conversión.');
+    if(n.attribution>1)parts.push('Attribution rate mayor que 1: hay más tickets que clics únicos, probablemente por compras diferidas o multi-dispositivo; interpretar con cautela.');
+    return parts.length?parts.join(' '):'Rendimiento en línea con la media de la base en todas las dimensiones.';
 }
 
 /* ================================================================
-   5. MIS INFLUENCERS
+   MIS INFLUENCERS
    ================================================================ */
 function handleSubTabClick(sub){
     [myInfluencersGridView,myInfluencerDetailView,myCampaignsGridView,myCampaignsDetailView].forEach(v=>v.classList.add('hidden'));
@@ -430,27 +557,31 @@ function handleSubTabClick(sub){
 }
 
 function processMyInfluencersData(){
-    const gI={}, gC={};
+    const gI={},gC={};
     myInfluencersRawData.forEach(row=>{
-        const id=row['ID influencer'], title=row['Título Contenido'];
+        const id=row['ID influencer'],title=row['Título Contenido'];
         if(!id||!title)return;
         const imp=num(row['Impresiones']),lk=num(row['Likes']),cm=num(row['Comentarios']),rc=num(row['Cuentas Alcanzadas']),sh=num(row['Veces compartidas']),men=num(row['Hombres']),wom=num(row['Mujeres']);
-        if(!gI[id])gI[id]={id,name:row['Influencer'],platform:row['Plataforma'],image:row['Imagen'],sumImpressions:0,sumLikes:0,sumComments:0,sumReach:0,sumShares:0,men:0,women:0,count:0,contents:[]};
+        if(!gI[id])gI[id]={id,name:row['Influencer'],platform:row['Plataforma'],image:(row['Imagen']||'').trim(),sumImpressions:0,sumLikes:0,sumComments:0,sumReach:0,sumShares:0,men:0,women:0,count:0,contents:[]};
         gI[id].sumImpressions+=imp;gI[id].sumLikes+=lk;gI[id].sumComments+=cm;gI[id].sumReach+=rc;gI[id].sumShares+=sh;gI[id].men+=men;gI[id].women+=wom;gI[id].count++;gI[id].contents.push(row);
         if(!gC[title])gC[title]={title,totalImpressions:0,totalReach:0,totalLikes:0,totalComments:0,contents:[]};
         gC[title].totalImpressions+=imp;gC[title].totalReach+=rc;gC[title].totalLikes+=lk;gC[title].totalComments+=cm;gC[title].contents.push(row);
     });
     processedMyInfluencers=Object.values(gI).map(i=>{
-        const engagement=(i.sumLikes+i.sumComments+i.sumShares);
-        const engRate=i.sumImpressions>0?(engagement/i.sumImpressions*100):0;
-        return {...i,avgImpressions:i.sumImpressions/i.count,avgLikes:i.sumLikes/i.count,avgComments:i.sumComments/i.count,avgReach:i.sumReach/i.count,avgMen:Math.round(i.men/i.count),avgWomen:Math.round(i.women/i.count),engagementRate:engRate};
+        const engagement=i.sumLikes+i.sumComments+i.sumShares;
+        return {...i,avgImpressions:i.sumImpressions/i.count,avgLikes:i.sumLikes/i.count,avgComments:i.sumComments/i.count,avgReach:i.sumReach/i.count,avgMen:Math.round(i.men/i.count),avgWomen:Math.round(i.women/i.count),engagementRate:i.sumImpressions>0?engagement/i.sumImpressions*100:0};
     });
     processedMyCampaigns=Object.values(gC);
 }
 
+function influAvatar(i,size){
+    if(i.image)return `<img src="images/${i.image}" class="influ-avatar" style="width:${size}px;height:${size}px" alt="" onerror="this.outerHTML='<div class=\\'influ-avatar\\' style=\\'width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:700\\'>${(i.name||'?')[0].toUpperCase()}</div>'">`;
+    return `<div class="influ-avatar" style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:700">${(i.name||'?')[0].toUpperCase()}</div>`;
+}
+
 function renderMyInfluencersGrid(){
     myInfluencersGrid.innerHTML='';
-    if(!processedMyInfluencers.length){myInfluencersGrid.innerHTML='<p>No hay datos.</p>';return;}
+    if(!processedMyInfluencers.length){myInfluencersGrid.innerHTML='<p class="text-secondary">No hay datos.</p>';return;}
     const k=myInfluencersSort.value;
     const sorted=[...processedMyInfluencers].sort((a,b)=>{
         if(k==='name')return a.name.localeCompare(b.name);
@@ -462,12 +593,24 @@ function renderMyInfluencersGrid(){
         return 0;
     });
     sorted.forEach(i=>{
-        const img=i.image?`images/${i.image}`:`https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=random`;
         const erCls=i.engagementRate>5?'good':(i.engagementRate>2?'neutral':'bad');
-        const card=document.createElement('div');card.className='my-influencer-card';
-        card.innerHTML=`<div class="my-influencer-header"><img src="${img}" class="my-influencer-avatar" alt="${i.name}"><div><h3 style="margin:0">${i.name}</h3><span style="background:#333;padding:2px 8px;border-radius:4px;font-size:.8rem">${i.platform}</span></div><div class="content-badge">${i.count} Contenidos</div></div>
-        <div class="my-influencer-stats"><div class="stat-row"><span>Prom. Impr</span><span>${fmtNum(i.avgImpressions)}</span></div><div class="stat-row"><span>Prom. Alcance</span><span>${fmtNum(i.avgReach)}</span></div><div class="stat-row"><span>Prom. Likes</span><span>${fmtNum(i.avgLikes)}</span></div><div class="stat-row"><span>Eng. Rate</span><span class="${erCls}">${i.engagementRate.toFixed(1)}%</span></div></div>
-        <div style="padding:0 20px 20px"><p style="font-size:.8rem;color:#aaa;margin-bottom:5px">Audiencia: H ${i.avgMen}% / M ${i.avgWomen}%</p><div class="demographics-bar"><div class="demographics-fill" style="width:${i.avgMen}%;background:#3b82f6"></div><div class="demographics-fill" style="width:${i.avgWomen}%;background:#ec4899"></div></div></div>`;
+        const card=document.createElement('div');card.className='influ-card';
+        card.innerHTML=`
+        <div class="influ-card-head">
+            ${influAvatar(i,52)}
+            <div><h3>${i.name}</h3><span class="platform-tag">${i.platform}</span></div>
+            <span class="count-chip">${i.count} contenido${i.count>1?'s':''}</span>
+        </div>
+        <div class="influ-stats">
+            <div class="influ-stat"><div class="l">Impr. medias</div><div class="v">${fmtK(i.avgImpressions)}</div></div>
+            <div class="influ-stat"><div class="l">Alcance medio</div><div class="v">${fmtK(i.avgReach)}</div></div>
+            <div class="influ-stat"><div class="l">Likes medios</div><div class="v">${fmtK(i.avgLikes)}</div></div>
+            <div class="influ-stat"><div class="l">Engagement</div><div class="v ${erCls}">${i.engagementRate.toFixed(1).replace('.',',')}%</div></div>
+        </div>
+        <div style="margin-top:14px">
+            <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--text-3)"><span>H ${i.avgMen}%</span><span>M ${i.avgWomen}%</span></div>
+            <div class="demo-bar"><div class="demo-fill" style="width:${i.avgMen}%;background:var(--blue)"></div><div class="demo-fill" style="width:${i.avgWomen}%;background:#c65b8f"></div></div>
+        </div>`;
         card.onclick=()=>showMyInfluencerDetail(i.id);
         myInfluencersGrid.appendChild(card);
     });
@@ -475,22 +618,47 @@ function renderMyInfluencersGrid(){
 
 function showMyInfluencerDetail(id){
     const i=processedMyInfluencers.find(x=>x.id==id);if(!i)return;
-    // asegurar vista correcta si venimos de otra sub-tab
     myInfluencersView.classList.remove('hidden');
     [myInfluencersGridView,myCampaignsGridView,myCampaignsDetailView].forEach(v=>v.classList.add('hidden'));
     myInfluencerDetailView.classList.remove('hidden');
-    const img=i.image?`images/${i.image}`:`https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=random`;
-    myInfluencerDetailView.innerHTML=`<div class="campaign-header"><button class="btn btn-secondary" onclick="handleSubTabClick('influencers')">← Volver a Influencers</button></div>
-    <div style="display:flex;gap:20px;align-items:center;background:var(--bg-card);padding:20px;border-radius:10px;border:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap"><img src="${img}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)"><div><h2 style="font-size:2rem;margin:0">${i.name}</h2><p class="text-secondary">${i.platform} • ${i.count} Contenidos</p><div style="display:flex;gap:15px;margin-top:10px;flex-wrap:wrap"><span style="background:#333;padding:5px 10px;border-radius:5px">👁️ ${fmtNum(i.avgImpressions)} Prom. Impr</span><span style="background:#333;padding:5px 10px;border-radius:5px">❤️ ${fmtNum(i.avgLikes)} Prom. Likes</span><span style="background:#333;padding:5px 10px;border-radius:5px">⚡ ${i.engagementRate.toFixed(1)}% Eng.</span></div></div></div>
-    <h3 style="margin-bottom:15px;color:var(--primary)">Desglose de Contenidos</h3><div style="overflow-x:auto"><table class="content-table"><thead><tr><th>Título</th><th>Plataforma</th><th>Impresiones</th><th>Alcance</th><th>Likes</th><th>Comentarios</th><th>Compartidos</th></tr></thead><tbody>${i.contents.map(c=>`<tr><td>${c['Título Contenido']}</td><td>${c['Plataforma']}</td><td>${fmtNum(num(c['Impresiones']))}</td><td>${fmtNum(num(c['Cuentas Alcanzadas']))}</td><td>${fmtNum(num(c['Likes']))}</td><td>${fmtNum(num(c['Comentarios']))}</td><td>${fmtNum(num(c['Veces compartidas']))}</td></tr>`).join('')}</tbody></table></div>`;
+    myInfluencerDetailView.innerHTML=`
+    <div class="detail-head"><button class="btn" onclick="handleSubTabClick('influencers')">← Volver a influencers</button></div>
+    <div class="detail-head">
+        <div style="display:flex;gap:18px;align-items:center">
+            ${influAvatar(i,72)}
+            <div class="title-block">
+                <h2>${i.name}</h2>
+                <p>${i.platform} · ${i.count} contenidos publicados · Engagement ${i.engagementRate.toFixed(1).replace('.',',')}%</p>
+            </div>
+        </div>
+    </div>
+    <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-cell"><span class="micro-label">Impr. medias</span><div class="val">${fmtK(i.avgImpressions)}</div></div>
+        <div class="kpi-cell"><span class="micro-label">Alcance medio</span><div class="val">${fmtK(i.avgReach)}</div></div>
+        <div class="kpi-cell"><span class="micro-label">Likes medios</span><div class="val">${fmtK(i.avgLikes)}</div></div>
+        <div class="kpi-cell"><span class="micro-label">Comentarios medios</span><div class="val">${fmtK(i.avgComments)}</div></div>
+    </div>
+    <div class="table-card"><div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Contenido</th><th class="th-left">Plataforma</th><th>Impresiones</th><th>Alcance</th><th>Likes</th><th>Comentarios</th><th>Compartidos</th></tr></thead>
+        <tbody>${i.contents.map(c=>`<tr><td>${c['Título Contenido']}</td><td class="td-left"><span class="platform-tag" style="margin:0">${c['Plataforma']}</span></td><td>${fmtNum(num(c['Impresiones']))}</td><td>${fmtNum(num(c['Cuentas Alcanzadas']))}</td><td>${fmtNum(num(c['Likes']))}</td><td>${fmtNum(num(c['Comentarios']))}</td><td>${fmtNum(num(c['Veces compartidas']))}</td></tr>`).join('')}</tbody>
+    </table></div></div>`;
 }
 
 function renderMyCampaignsGrid(){
     myCampaignsGrid.innerHTML='';
-    if(!processedMyCampaigns.length){myCampaignsGrid.innerHTML='<p>No hay datos.</p>';return;}
+    if(!processedMyCampaigns.length){myCampaignsGrid.innerHTML='<p class="text-secondary">No hay datos.</p>';return;}
     processedMyCampaigns.forEach(camp=>{
-        const card=document.createElement('div');card.className='result-card';
-        card.innerHTML=`<h3>${camp.title}</h3><p class="text-secondary" style="margin-bottom:10px">${camp.contents.length} Contenidos / Influencers</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.9rem"><div><strong>${fmtNum(camp.totalImpressions)}</strong><br><span class="text-secondary">Impresiones</span></div><div><strong>${fmtNum(camp.totalLikes)}</strong><br><span class="text-secondary">Likes</span></div></div><div style="margin-top:10px;text-align:right"><span style="color:var(--primary);font-weight:bold;font-size:.8rem">VER DETALLES →</span></div>`;
+        const card=document.createElement('div');card.className='influ-card';
+        card.innerHTML=`
+        <div class="influ-card-head" style="margin-bottom:12px">
+            <div><h3>${camp.title}</h3><span class="platform-tag">${camp.contents.length} contenidos</span></div>
+        </div>
+        <div class="influ-stats">
+            <div class="influ-stat"><div class="l">Impresiones</div><div class="v">${fmtK(camp.totalImpressions)}</div></div>
+            <div class="influ-stat"><div class="l">Alcance</div><div class="v">${fmtK(camp.totalReach)}</div></div>
+            <div class="influ-stat"><div class="l">Likes</div><div class="v">${fmtK(camp.totalLikes)}</div></div>
+            <div class="influ-stat"><div class="l">Comentarios</div><div class="v">${fmtK(camp.totalComments)}</div></div>
+        </div>`;
         card.onclick=()=>renderMyCampaignDetail(camp.title);
         myCampaignsGrid.appendChild(card);
     });
@@ -503,17 +671,36 @@ function renderMyCampaignDetail(title,sortBy='likes'){
     let cs=[...camp.contents];
     if(sortBy==='likes')cs.sort((a,b)=>num(b['Likes'])-num(a['Likes']));
     else if(sortBy==='impressions')cs.sort((a,b)=>num(b['Impresiones'])-num(a['Impresiones']));
-    else if(sortBy==='men')cs.sort((a,b)=>num(b['Hombres'])-num(a['Hombres']));
-    else if(sortBy==='women')cs.sort((a,b)=>num(b['Mujeres'])-num(a['Mujeres']));
-    myCampaignsDetailView.innerHTML=`<div class="campaign-header"><div style="display:flex;gap:10px;align-items:center"><button class="btn btn-secondary" id="back-to-camp-grid">← Volver</button><h2 style="color:var(--primary);margin:0">${camp.title}</h2></div><div style="display:flex;gap:10px;align-items:center"><label class="text-secondary">Ordenar por:</label><select id="campaign-detail-sort" style="width:180px"><option value="likes" ${sortBy==='likes'?'selected':''}>Mayor Likes</option><option value="impressions" ${sortBy==='impressions'?'selected':''}>Mayor Visualizaciones</option><option value="men" ${sortBy==='men'?'selected':''}>% Hombres</option><option value="women" ${sortBy==='women'?'selected':''}>% Mujeres</option></select></div></div>
-    <div class="global-dashboard" style="margin-bottom:20px;grid-template-columns:repeat(4,1fr)"><div class="global-kpi-card" style="padding:15px"><span class="label">Total Impresiones</span><span class="value">${fmtNum(camp.totalImpressions)}</span></div><div class="global-kpi-card" style="padding:15px"><span class="label">Total Alcance</span><span class="value">${fmtNum(camp.totalReach)}</span></div><div class="global-kpi-card" style="padding:15px"><span class="label">Total Likes</span><span class="value">${fmtNum(camp.totalLikes)}</span></div><div class="global-kpi-card" style="padding:15px"><span class="label">Nº Influencers</span><span class="value">${camp.contents.length}</span></div></div>
-    <h3 style="margin-bottom:15px">Contenidos Asociados</h3><div style="overflow-x:auto"><table class="content-table"><thead><tr><th>Influencer</th><th>Plataforma</th><th>Impresiones</th><th>Likes</th><th>% H</th><th>% M</th><th>Acción</th></tr></thead><tbody>${cs.map(c=>`<tr><td style="font-weight:bold;color:var(--primary)">${c['Influencer']}</td><td>${c['Plataforma']}</td><td>${fmtNum(num(c['Impresiones']))}</td><td>${fmtNum(num(c['Likes']))}</td><td>${c['Hombres']}%</td><td>${c['Mujeres']}%</td><td><button class="btn btn-secondary" style="padding:2px 8px;font-size:.8rem" onclick="showMyInfluencerDetail('${c['ID influencer']}')">Ver ficha</button></td></tr>`).join('')}</tbody></table></div>`;
+    myCampaignsDetailView.innerHTML=`
+    <div class="detail-head">
+        <div style="display:flex;gap:12px;align-items:center">
+            <button class="btn" id="back-to-camp-grid">← Volver</button>
+            <div class="title-block"><h2 style="font-size:1.2rem">${camp.title}</h2></div>
+        </div>
+        <div class="control-row">
+            <label>Ordenar por</label>
+            <select id="campaign-detail-sort" style="width:170px">
+                <option value="likes" ${sortBy==='likes'?'selected':''}>Likes</option>
+                <option value="impressions" ${sortBy==='impressions'?'selected':''}>Impresiones</option>
+            </select>
+        </div>
+    </div>
+    <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-cell"><span class="micro-label">Impresiones</span><div class="val">${fmtK(camp.totalImpressions)}</div></div>
+        <div class="kpi-cell"><span class="micro-label">Alcance</span><div class="val">${fmtK(camp.totalReach)}</div></div>
+        <div class="kpi-cell"><span class="micro-label">Likes</span><div class="val">${fmtK(camp.totalLikes)}</div></div>
+        <div class="kpi-cell"><span class="micro-label">Influencers</span><div class="val">${camp.contents.length}</div></div>
+    </div>
+    <div class="table-card"><div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Influencer</th><th class="th-left">Plataforma</th><th>Impresiones</th><th>Likes</th><th>Comentarios</th><th></th></tr></thead>
+        <tbody>${cs.map(c=>`<tr><td style="font-weight:600">${c['Influencer']}</td><td class="td-left"><span class="platform-tag" style="margin:0">${c['Plataforma']}</span></td><td>${fmtNum(num(c['Impresiones']))}</td><td>${fmtNum(num(c['Likes']))}</td><td>${fmtNum(num(c['Comentarios']))}</td><td style="text-align:right"><button class="btn" style="padding:4px 10px;font-size:.75rem" onclick="showMyInfluencerDetail('${c['ID influencer']}')">Ver ficha</button></td></tr>`).join('')}</tbody>
+    </table></div></div>`;
     document.getElementById('back-to-camp-grid').onclick=()=>handleSubTabClick('campaigns');
     document.getElementById('campaign-detail-sort').onchange=e=>renderMyCampaignDetail(title,e.target.value);
 }
 
 /* ================================================================
-   6. EXPLORAR
+   EXPLORAR
    ================================================================ */
 let filteredInfluencers=[];
 function populateTagFilters(){
@@ -538,16 +725,27 @@ function filterInfluencersData(){
             return true;
         });
         displayInfluencerResults();loader.classList.add('hidden');resultsContainer.classList.remove('hidden');
-    },300);
+    },200);
 }
 function displayInfluencerResults(){
     resultsContainer.innerHTML='';
-    if(!filteredInfluencers.length){resultsContainer.innerHTML='<p>No se encontraron influencers.</p>';return;}
+    if(!filteredInfluencers.length){resultsContainer.innerHTML='<p class="text-secondary">No se encontraron influencers con esos filtros.</p>';return;}
     filteredInfluencers.forEach(i=>{
         const raw=((i.likesAvg||0)+(i.commentsAvg||0)*1.5)/(i.followers||1)*100;
-        const impact=raw>100?100:raw.toFixed(2);
-        const card=document.createElement('div');card.className='result-card';
-        card.innerHTML=`<h3>${i.name}</h3><p class="text-secondary">${i.platform}</p><p>👥 ${fmtNum(i.followers)}</p><p>❤️ ${fmtNum(i.likesAvg)}</p><p class="text-impact">⚡ Engagement: ${impact}%</p>`;
+        const impact=Math.min(100,raw);
+        const erCls=impact>5?'good':(impact>2?'neutral':'bad');
+        const card=document.createElement('div');card.className='influ-card';
+        card.innerHTML=`
+        <div class="influ-card-head" style="margin-bottom:12px">
+            <div class="influ-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700">${(i.name||'?')[0].toUpperCase()}</div>
+            <div><h3>${i.name}</h3><span class="platform-tag">${i.platform}</span></div>
+        </div>
+        <div class="influ-stats">
+            <div class="influ-stat"><div class="l">Seguidores</div><div class="v">${fmtK(i.followers)}</div></div>
+            <div class="influ-stat"><div class="l">Likes medios</div><div class="v">${fmtK(i.likesAvg)}</div></div>
+            <div class="influ-stat"><div class="l">Comentarios</div><div class="v">${fmtK(i.commentsAvg)}</div></div>
+            <div class="influ-stat"><div class="l">Engagement</div><div class="v ${erCls}">${impact.toFixed(2).replace('.',',')}%</div></div>
+        </div>`;
         card.addEventListener('click',()=>displayInfluencerDetail(i));
         resultsContainer.appendChild(card);
     });
@@ -555,14 +753,38 @@ function displayInfluencerResults(){
 function displayInfluencerDetail(i){
     destroyCharts();resultsContainer.classList.add('hidden');detailContainer.classList.remove('hidden');
     const n=(typeof i.niche==='string')?i.niche.split('|').map(s=>s.trim()).filter(Boolean):[];
-    detailContainer.innerHTML=`<div style="display:flex;align-items:center;gap:20px;margin-bottom:20px"><img src="https://ui-avatars.com/api/?name=${encodeURIComponent(i.name)}&background=ef4444&color=fff&size=120" style="border-radius:50%" alt="${i.name}"><div><h2>${i.name}</h2><p class="text-secondary">${i.platform}</p></div></div><div style="margin-bottom:20px">${n.map(t=>`<span style="background:#333;padding:5px 10px;border-radius:15px;margin-right:5px;font-size:.8rem">${t}</span>`).join('')}</div><button class="btn btn-secondary" id="back-explore-btn">← Volver</button><div style="margin-top:20px;height:300px"><canvas id="influencer-chart"></canvas></div>`;
+    detailContainer.innerHTML=`
+    <div class="detail-head"><button class="btn" id="back-explore-btn">← Volver a resultados</button></div>
+    <div class="detail-head">
+        <div style="display:flex;gap:18px;align-items:center">
+            <div class="influ-avatar" style="width:72px;height:72px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.4rem">${(i.name||'?')[0].toUpperCase()}</div>
+            <div class="title-block"><h2>${i.name}</h2><p>${i.platform}</p></div>
+        </div>
+    </div>
+    <div style="margin-bottom:20px">${n.map(t=>`<span class="platform-tag" style="margin-right:6px">${t}</span>`).join('')}</div>
+    <div class="chart-card"><div class="chart-title">Métricas (escala logarítmica)</div><div class="chart-body"><canvas id="influencer-chart"></canvas></div></div>`;
     document.getElementById('back-explore-btn').onclick=()=>{detailContainer.classList.add('hidden');resultsContainer.classList.remove('hidden');};
-    charts.influencer=new Chart(document.getElementById('influencer-chart'),{type:'bar',data:{labels:['Seguidores','Likes Avg','Comentarios Avg'],datasets:[{label:'Métricas',data:[i.followers,i.likesAvg,i.commentsAvg],backgroundColor:['#ef4444','#f59e0b','#3b82f6']}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{type:'logarithmic'}}}});
+    charts.influencer=new Chart(document.getElementById('influencer-chart'),{type:'bar',
+        data:{labels:['Seguidores','Likes medios','Comentarios medios'],datasets:[{data:[i.followers,i.likesAvg,i.commentsAvg],backgroundColor:['rgba(229,72,77,.7)','rgba(91,141,239,.7)','rgba(70,167,88,.7)'],borderRadius:4,maxBarThickness:44}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+            scales:{y:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},x:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
 }
 
 /* ================================================================
-   7. INIT
+   NAVEGACIÓN E INIT
    ================================================================ */
+function handleTabClick(e){
+    tabs.forEach(t=>t.classList.remove('active'));
+    e.target.classList.add('active');
+    [exploreView,campaignView,newsletterView,myInfluencersView].forEach(v=>v.classList.add('hidden'));
+    const t=e.target.dataset.tab;
+    if(t==='explorar'){exploreView.classList.remove('hidden');populateTagFilters();filterInfluencersData();}
+    else if(t==='campanas'){campaignView.classList.remove('hidden');showCampaignView('overview');}
+    else if(t==='newsletters'){newsletterView.classList.remove('hidden');showNewsletterView('overview');}
+    else if(t==='mis-influencers'){myInfluencersView.classList.remove('hidden');handleSubTabClick('influencers');}
+}
+function destroyCharts(){for(const id in charts){if(charts[id]){charts[id].destroy();delete charts[id];}}}
+
 document.addEventListener('DOMContentLoaded',()=>{
     tabs.forEach(t=>t.addEventListener('click',handleTabClick));
     subTabInfluencers.addEventListener('click',()=>handleSubTabClick('influencers'));
