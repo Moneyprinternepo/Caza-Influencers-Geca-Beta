@@ -49,7 +49,15 @@ const fmtNum = n => Math.round(n||0).toLocaleString('es-ES');
 const fmtPct = (n,d=1) => ((n||0)*100).toFixed(d)+'%';
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 // convierte "0,177988971" o números a float
-const num = v => { if(v==null||v==='') return 0; if(typeof v==='number') return v; return parseFloat(String(v).replace(/\./g,'').replace(',','.'))||0; };
+const num = v => {
+    if(v==null||v==='') return 0;
+    if(typeof v==='number') return v;
+    let s=String(v).trim();
+    // Si tiene coma decimal (formato ES), elimina puntos de millar y cambia coma por punto.
+    // Si ya viene con punto decimal (CSV normalizado), se deja tal cual.
+    if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.');
+    return parseFloat(s)||0;
+};
 
 const MESES = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
 function parseFechaES(s){
@@ -78,7 +86,7 @@ function loadData(){
         parseCSV('data/influencers.csv', ','),
         parseCSV('data/campaigns.csv', ','),
         parseCSV('data/misinflus.csv', ','),
-        parseCSV('data/newsletters.csv', ';')
+        parseCSV('data/newsletters.csv', ',')
     ]).then(([inf, camp, mis, nl])=>{
         influencersData = inf.map(r=>({...r, followers:num(r.followers), likesAvg:num(r.likesAvg), commentsAvg:num(r.commentsAvg)}));
         campaignsData = processCampaigns(camp);
