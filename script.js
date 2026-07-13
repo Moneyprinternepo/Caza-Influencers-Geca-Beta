@@ -88,6 +88,21 @@ const mean=arr=>{const a=arr.filter(isFinite);return a.length?a.reduce((s,v)=>s+
 const q=(arr,p)=>{const a=[...arr].filter(isFinite).sort((x,y)=>x-y);if(!a.length)return 0;return a[Math.min(a.length-1,Math.floor(a.length*p))];};
 const scoreClass=s=>s>=66?'s-high':(s>=40?'s-mid':'s-low');
 
+/* ---------- Resolución universal de imágenes ----------
+   Acepta indistintamente:
+     · una URL absoluta (http/https)  → The Movie Database, CDN, etc.
+     · un protocolo relativo (//...)   → se sirve tal cual
+     · un nombre de fichero local      → se prefija con la carpeta indicada
+   Devuelve null si no hay valor, para que el llamador use su fallback. */
+function resolveImg(value, localDir='images'){
+    const v=(value==null?'':String(value)).trim();
+    if(!v) return null;
+    if(/^(https?:)?\/\//i.test(v) || v.startsWith('data:')) return v;
+    return `${localDir}/${v}`;
+}
+/* Escapa comillas simples para incrustar una URL dentro de un atributo style/onerror */
+const escAttr=s=>String(s).replace(/'/g,"%27").replace(/"/g,'%22');
+
 /* ================================================================
    CARGA
    ================================================================ */
@@ -131,12 +146,12 @@ function processCampaigns(rows){
     const base=rows.filter(r=>r.Id!=null&&String(r.Id).trim()!=='').map(c=>{
         const budget=num(c.Spent),clicks=num(c['Link Clicks']),impressions=num(c.Views),reach=num(c.Reach);
         const ctr=num(c['Click Rate']),retention=num(c['Retention Rate']),frequency=num(c.Frequency);
-        const imageFile=(c.imageFile||'').trim();
+        const imageFile=(c.imageFile||c.imageUrl||c.image||c.poster||'').trim();
         return {
             id:c.Id,name:c.Name,type:c.Type||'—',budget,impressions,reach,clicks,
             interactions:num(c.Interactions),retention,clickRate:ctr,
             views3s:num(c['3s Views']),
-            imageUrl:imageFile?`images/${imageFile}`:null,
+            imageUrl:resolveImg(imageFile),
             daysActive:num(c['Days Active']),spentPerDay:num(c['Spent Per Day']),
             frequency,reactions:num(c.Reactions),goal:c.Goal||'—',range:c.Range||'—',
             cpc:clicks>0?budget/clicks:Infinity,
@@ -246,10 +261,11 @@ function renderCampaignOverview(){
     destroyCharts();
     Chart.defaults.font.family="'Inter',sans-serif";
     Chart.defaults.font.size=11;
+    const cc=chartColors();
     charts.global=new Chart(document.getElementById('all-campaigns-chart'),{type:'bar',
         data:{labels:chrono.map(c=>truncate(c.name,16)),datasets:[{label:labels[sortKey],data:chrono.map(c=>isFinite(c[sortKey])?c[sortKey]:0),backgroundColor:'rgba(230,51,63,.55)',hoverBackgroundColor:'rgba(230,51,63,.85)',borderRadius:3,maxBarThickness:26}]},
         options:{responsive:true,maintainAspectRatio:false,
-            scales:{x:{ticks:{color:'#5f6672',maxRotation:60},grid:{display:false}},y:{ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}}},
+            scales:{x:{ticks:{color:cc.tick,maxRotation:60},grid:{display:false}},y:{ticks:{color:cc.tick},grid:{color:cc.grid},border:{display:false}}},
             plugins:{legend:{display:false}}}});
 
     const asc=(sortKey==='cpc'||sortKey==='cpm');
@@ -265,9 +281,13 @@ function renderCampaignOverview(){
     };
     const featured=sorted.slice(0,3), rest=sorted.slice(3);
     const featHTML='<div class="featured-grid">'+featured.map((c,i)=>{
-        const bg=c.imageUrl?`background-image:url('${c.imageUrl}')`:`background-image:radial-gradient(ellipse at 30% 0%,rgba(230,51,63,.3),transparent 60%)`;
+        const media=c.imageUrl
+            ? `<div class="featured-media" style="background-image:url('${escAttr(c.imageUrl)}')"></div>`
+            : `<div class="featured-media featured-media--empty">${(c.name||'?')[0]}</div>`;
         const extra=disp(c);
-        return `<div class="featured-card rank-${i+1}" data-id="${c.id}" style="${bg}">
+        return `<div class="featured-card rank-${i+1}" data-id="${c.id}">
+            ${media}
+            <div class="featured-shade"></div>
             <div class="featured-rank">Nº ${i+1}</div>
             <div class="featured-score"><span class="score-badge ${scoreClass(c.score)}">${c.score}</span></div>
             <div class="featured-body">
@@ -282,7 +302,9 @@ function renderCampaignOverview(){
         </div>`;
     }).join('')+'</div>';
     document.getElementById('campaign-rank-list').innerHTML=rest.map((c,i)=>{
-        const thumb=c.imageUrl?`<img src="${c.imageUrl}" class="rank-thumb" alt="" onerror="this.outerHTML='<div class=\\'rank-thumb letter\\'>${(c.name||'?')[0]}</div>'">`:`<div class="rank-thumb letter">${(c.name||'?')[0]}</div>`;
+        const thumb=c.imageUrl
+            ? `<div class="rank-thumb" style="background-image:url('${escAttr(c.imageUrl)}')"></div>`
+            : `<div class="rank-thumb letter">${(c.name||'?')[0]}</div>`;
         const extra=disp(c);
         return `<div class="rank-row" data-id="${c.id}">
             <div class="rank-num">${String(i+4).padStart(2,'0')}</div>
@@ -320,7 +342,9 @@ function renderCampaignDetail(id){
     <div class="detail-head">
         <button class="btn" onclick="showCampaignView('overview')">← Volver al ranking</button>
     </div>
-    <div class="detail-hero" style="${c.imageUrl?`background-image:url('${c.imageUrl}')`:`background-image:radial-gradient(ellipse at 20% 0%,rgba(230,51,63,.28),transparent 55%),linear-gradient(135deg,#1c1c22,#101014)`}">
+    <div class="detail-hero ${c.imageUrl?'has-img':'no-img'}">
+        ${c.imageUrl?`<div class="detail-hero-media" style="background-image:url('${escAttr(c.imageUrl)}')"></div>`:''}
+        <div class="detail-hero-shade"></div>
         <div class="detail-hero-body">
             <div>
                 <h2>${c.name}</h2>
@@ -364,10 +388,11 @@ function renderCampaignDetail(id){
             </div>
         </div>
     </div>`;
+    const ccF=chartColors();
     charts.funnel=new Chart(document.getElementById('funnel-chart'),{type:'bar',
         data:{labels:['Impresiones','Alcance','Clics'],datasets:[{data:[c.impressions,c.reach,c.clicks],backgroundColor:['rgba(230,51,63,.35)','rgba(230,51,63,.6)','rgba(230,51,63,.9)'],borderRadius:4,maxBarThickness:34}]},
         options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-            scales:{x:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},y:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
+            scales:{x:{type:'logarithmic',ticks:{color:ccF.tick},grid:{color:ccF.grid},border:{display:false}},y:{ticks:{color:ccF.tick2},grid:{display:false}}}}});
 }
 
 /* ================================================================
@@ -469,10 +494,10 @@ function renderNewsletterOverview(){
                 {type:'line',label:'Open rate (%)',data:chrono.map(n=>n.openRate*100),borderColor:'#46a758',borderWidth:2,pointRadius:0,tension:.35,yAxisID:'y1'}
             ]},
         options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
-            scales:{x:{ticks:{color:'#5f6672',maxTicksLimit:16},grid:{display:false}},
-                y:{position:'left',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},
+            scales:{x:{ticks:{color:chartColors().tick,maxTicksLimit:16},grid:{display:false}},
+                y:{position:'left',ticks:{color:chartColors().tick},grid:{color:chartColors().grid},border:{display:false}},
                 y1:{position:'right',ticks:{color:'#46a758'},grid:{display:false},border:{display:false}}},
-            plugins:{legend:{labels:{color:'#9aa1ad',boxWidth:10,boxHeight:10}}}}});
+            plugins:{legend:{labels:{color:chartColors().tick2,boxWidth:10,boxHeight:10}}}}});
 
     const key=nlSortFilter.value;
     const sorted=[...list].sort((a,b)=>(b[key]||0)-(a[key]||0));
@@ -483,7 +508,9 @@ function renderNewsletterOverview(){
         "radial-gradient(ellipse at 50% 100%,rgba(230,51,63,.25),transparent 55%),linear-gradient(150deg,#1a1416,#101014)"
     ];
     const featNL='<div class="featured-grid">'+nlFeat.map((n,i)=>`
-        <div class="featured-card rank-${i+1}" data-id="${n.id}" style="background-image:${grads[i]}">
+        <div class="featured-card rank-${i+1}" data-id="${n.id}">
+            <div class="featured-media" style="background-image:${grads[i]}"></div>
+            <div class="featured-shade"></div>
             <div class="featured-rank">Nº ${i+1}</div>
             <div class="featured-score"><span class="score-badge ${scoreClass(n.score)}">${n.score}</span></div>
             <div class="featured-body">
@@ -579,7 +606,7 @@ function renderNewsletterDetail(id){
     charts.nlFunnel=new Chart(document.getElementById('nl-funnel-chart'),{type:'bar',
         data:{labels:['Enviados','Aperturas','Clics','Tickets'],datasets:[{data:[n.recipients,n.opens,n.clicks,n.tickets],backgroundColor:['rgba(230,51,63,.25)','rgba(230,51,63,.45)','rgba(230,51,63,.7)','rgba(70,167,88,.8)'],borderRadius:4,maxBarThickness:34}]},
         options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-            scales:{x:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},y:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
+            scales:{x:{type:'logarithmic',ticks:{color:chartColors().tick},grid:{color:chartColors().grid},border:{display:false}},y:{ticks:{color:chartColors().tick2},grid:{display:false}}}}});
 }
 
 function nlReading(n,avgOpen,avgCTO,avgRPM,avgAtt){
@@ -610,9 +637,10 @@ function processMyInfluencersData(){
         const id=row['ID influencer'],title=row['Título Contenido'];
         if(!id||!title)return;
         const imp=num(row['Impresiones']),lk=num(row['Likes']),cm=num(row['Comentarios']),rc=num(row['Cuentas Alcanzadas']),sh=num(row['Veces compartidas']),men=num(row['Hombres']),wom=num(row['Mujeres']);
-        if(!gI[id])gI[id]={id,name:row['Influencer'],platform:row['Plataforma'],image:(row['Imagen']||'').trim(),sumImpressions:0,sumLikes:0,sumComments:0,sumReach:0,sumShares:0,men:0,women:0,count:0,contents:[]};
+        if(!gI[id])gI[id]={id,name:row['Influencer'],platform:row['Plataforma'],image:resolveImg((row['Imagen']||row['imageUrl']||'').trim()),sumImpressions:0,sumLikes:0,sumComments:0,sumReach:0,sumShares:0,men:0,women:0,count:0,contents:[]};
         gI[id].sumImpressions+=imp;gI[id].sumLikes+=lk;gI[id].sumComments+=cm;gI[id].sumReach+=rc;gI[id].sumShares+=sh;gI[id].men+=men;gI[id].women+=wom;gI[id].count++;gI[id].contents.push(row);
-        if(!gC[title])gC[title]={title,totalImpressions:0,totalReach:0,totalLikes:0,totalComments:0,contents:[]};
+        if(!gC[title])gC[title]={title,image:null,totalImpressions:0,totalReach:0,totalLikes:0,totalComments:0,contents:[]};
+        if(!gC[title].image){const ci=resolveImg((row['Imagen']||row['imageUrl']||row['Portada']||'').trim());if(ci)gC[title].image=ci;}
         gC[title].totalImpressions+=imp;gC[title].totalReach+=rc;gC[title].totalLikes+=lk;gC[title].totalComments+=cm;gC[title].contents.push(row);
     });
     processedMyInfluencers=Object.values(gI).map(i=>{
@@ -623,7 +651,7 @@ function processMyInfluencersData(){
 }
 
 function influAvatar(i,size){
-    if(i.image)return `<img src="images/${i.image}" class="influ-avatar" style="width:${size}px;height:${size}px" alt="" onerror="this.outerHTML='<div class=\\'influ-avatar\\' style=\\'width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:700\\'>${(i.name||'?')[0].toUpperCase()}</div>'">`;
+    if(i.image)return `<img src="${escAttr(i.image)}" class="influ-avatar" style="width:${size}px;height:${size}px" alt="" onerror="this.outerHTML='<div class=\\'influ-avatar\\' style=\\'width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:700\\'>${(i.name||'?')[0].toUpperCase()}</div>'">`;
     return `<div class="influ-avatar" style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-weight:700">${(i.name||'?')[0].toUpperCase()}</div>`;
 }
 
@@ -696,8 +724,13 @@ function renderMyCampaignsGrid(){
     myCampaignsGrid.innerHTML='';
     if(!processedMyCampaigns.length){myCampaignsGrid.innerHTML='<p class="text-secondary">No hay datos.</p>';return;}
     processedMyCampaigns.forEach(camp=>{
-        const card=document.createElement('div');card.className='influ-card';
+        const card=document.createElement('div');card.className='influ-card influ-card--media';
+        const media=camp.image
+            ? `<div class="card-media" style="background-image:url('${escAttr(camp.image)}')"></div>`
+            : `<div class="card-media card-media--empty">${(camp.title||'?')[0]}</div>`;
         card.innerHTML=`
+        ${media}
+        <div class="influ-card-inner">
         <div class="influ-card-head" style="margin-bottom:12px">
             <div><h3>${camp.title}</h3><span class="platform-tag">${camp.contents.length} contenidos</span></div>
         </div>
@@ -706,6 +739,7 @@ function renderMyCampaignsGrid(){
             <div class="influ-stat"><div class="l">Alcance</div><div class="v">${fmtK(camp.totalReach)}</div></div>
             <div class="influ-stat"><div class="l">Likes</div><div class="v">${fmtK(camp.totalLikes)}</div></div>
             <div class="influ-stat"><div class="l">Comentarios</div><div class="v">${fmtK(camp.totalComments)}</div></div>
+        </div>
         </div>`;
         card.onclick=()=>renderMyCampaignDetail(camp.title);
         myCampaignsGrid.appendChild(card);
@@ -782,10 +816,14 @@ function displayInfluencerResults(){
         const raw=((i.likesAvg||0)+(i.commentsAvg||0)*1.5)/(i.followers||1)*100;
         const impact=Math.min(100,raw);
         const erCls=impact>5?'good':(impact>2?'neutral':'bad');
+        const av=resolveImg((i.image||i.imageUrl||i.avatar||'').trim());
+        const avatarHTML=av
+            ? `<img src="${escAttr(av)}" class="influ-avatar" alt="" onerror="this.outerHTML='<div class=\\'influ-avatar\\' style=\\'display:flex;align-items:center;justify-content:center;font-weight:700\\'>${(i.name||'?')[0].toUpperCase()}</div>'">`
+            : `<div class="influ-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700">${(i.name||'?')[0].toUpperCase()}</div>`;
         const card=document.createElement('div');card.className='influ-card';
         card.innerHTML=`
         <div class="influ-card-head" style="margin-bottom:12px">
-            <div class="influ-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700">${(i.name||'?')[0].toUpperCase()}</div>
+            ${avatarHTML}
             <div><h3>${i.name}</h3><span class="platform-tag">${i.platform}</span></div>
         </div>
         <div class="influ-stats">
@@ -815,7 +853,7 @@ function displayInfluencerDetail(i){
     charts.influencer=new Chart(document.getElementById('influencer-chart'),{type:'bar',
         data:{labels:['Seguidores','Likes medios','Comentarios medios'],datasets:[{data:[i.followers,i.likesAvg,i.commentsAvg],backgroundColor:['rgba(230,51,63,.7)','rgba(91,141,239,.7)','rgba(70,167,88,.7)'],borderRadius:4,maxBarThickness:44}]},
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-            scales:{y:{type:'logarithmic',ticks:{color:'#5f6672'},grid:{color:'#1e222a'},border:{display:false}},x:{ticks:{color:'#9aa1ad'},grid:{display:false}}}}});
+            scales:{y:{type:'logarithmic',ticks:{color:chartColors().tick},grid:{color:chartColors().grid},border:{display:false}},x:{ticks:{color:chartColors().tick2},grid:{display:false}}}}});
 }
 
 /* ================================================================
@@ -834,6 +872,7 @@ function handleTabClick(e){
 function destroyCharts(){for(const id in charts){if(charts[id]){charts[id].destroy();delete charts[id];}}}
 
 document.addEventListener('DOMContentLoaded',()=>{
+    initTheme();
     tabs.forEach(t=>t.addEventListener('click',handleTabClick));
     subTabInfluencers.addEventListener('click',()=>handleSubTabClick('influencers'));
     subTabCampaigns.addEventListener('click',()=>handleSubTabClick('campaigns'));
@@ -845,3 +884,48 @@ document.addEventListener('DOMContentLoaded',()=>{
     myInfluencersSort.onchange=renderMyInfluencersGrid;
     loadData();
 });
+
+/* ================================================================
+   TEMA (claro / oscuro)
+   ================================================================ */
+function applyTheme(mode){
+    const root=document.documentElement;
+    root.setAttribute('data-theme',mode);
+    try{localStorage.setItem('caza-theme',mode);}catch(e){}
+    const btn=document.getElementById('theme-toggle');
+    if(btn){
+        const dark=mode==='dark';
+        btn.setAttribute('aria-label',dark?'Cambiar a modo claro':'Cambiar a modo oscuro');
+        btn.querySelector('.tt-icon').textContent=dark?'☀':'☾';
+        btn.querySelector('.tt-label').textContent=dark?'Claro':'Oscuro';
+    }
+    // Reactualiza colores de los gráficos activos según el tema
+    refreshActiveView();
+}
+function initTheme(){
+    let saved='dark';
+    try{saved=localStorage.getItem('caza-theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');}catch(e){}
+    const btn=document.getElementById('theme-toggle');
+    if(btn)btn.addEventListener('click',()=>{
+        const cur=document.documentElement.getAttribute('data-theme')||'dark';
+        applyTheme(cur==='dark'?'light':'dark');
+    });
+    applyTheme(saved);
+}
+/* Color de rejilla/ejes de Chart.js según tema (lee variables CSS vivas) */
+function chartColors(){
+    const cs=getComputedStyle(document.documentElement);
+    return {
+        grid:cs.getPropertyValue('--chart-grid').trim()||'#1e222a',
+        tick:cs.getPropertyValue('--chart-tick').trim()||'#5f6672',
+        tick2:cs.getPropertyValue('--text-2').trim()||'#9aa1ad'
+    };
+}
+/* Vuelve a pintar la vista activa (para que los gráficos tomen el color del tema) */
+function refreshActiveView(){
+    const active=document.querySelector('.tab.active');
+    if(!active)return;
+    const t=active.dataset.tab;
+    if(t==='campanas'&&!campaignOverviewView.classList.contains('hidden'))renderCampaignOverview();
+    else if(t==='newsletters'&&!nlOverviewView.classList.contains('hidden'))renderNewsletterOverview();
+}
