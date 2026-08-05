@@ -29,6 +29,7 @@ const mainContent = document.getElementById('mainContent');
 const loader = document.getElementById('loader');
 const tabs = document.querySelectorAll('.tab');
 const exploreView = document.getElementById('explore-view');
+const planView = document.getElementById('plan-view');
 const campaignView = document.getElementById('campaign-view');
 const newsletterView = document.getElementById('newsletter-view');
 const myInfluencersView = document.getElementById('my-influencers-view');
@@ -108,22 +109,28 @@ const escAttr=s=>String(s).replace(/'/g,"%27").replace(/"/g,'%22');
    ================================================================ */
 function loadData(){
     loader.classList.remove('hidden');
-    mainContent.querySelectorAll('.tabs, #campaign-view, #newsletter-view, #my-influencers-view, #explore-view').forEach(e=>e.classList.add('hidden'));
+    mainContent.querySelectorAll('.tabs, #campaign-view, #newsletter-view, #my-influencers-view, #explore-view, #plan-view').forEach(e=>e.classList.add('hidden'));
     const noCache=`?t=${Date.now()}`;
     const parseCSV=(path,delimiter)=>new Promise((res,rej)=>{
         Papa.parse(path+noCache,{download:true,header:true,dynamicTyping:false,skipEmptyLines:true,delimiter,complete:({data})=>res(data),error:rej});
+    });
+    /* Opcional: si el CSV no existe, no rompe la carga */
+    const parseCSVOpcional=(path,delimiter)=>new Promise(res=>{
+        Papa.parse(path+noCache,{download:true,header:true,dynamicTyping:false,skipEmptyLines:true,delimiter,complete:({data})=>res(data||[]),error:()=>res([])});
     });
     Promise.all([
         parseCSV('data/influencers.csv',','),
         parseCSV('data/campaigns.csv',','),
         parseCSV('data/misinflus.csv',','),
-        parseCSV('data/newsletters.csv',',')
-    ]).then(([inf,camp,mis,nl])=>{
+        parseCSV('data/newsletters.csv',','),
+        parseCSVOpcional('data/cartelera.csv',',')
+    ]).then(([inf,camp,mis,nl,cartelera])=>{
         influencersData=inf.map(r=>({...r,followers:num(r.followers),likesAvg:num(r.likesAvg),commentsAvg:num(r.commentsAvg)}));
         campaignsData=processCampaigns(camp);
         myInfluencersRawData=mis;
         newslettersData=processNewsletters(nl);
         processMyInfluencersData();
+        if(window.PlanCartelera) PlanCartelera.setData(cartelera);
         initApp();
     }).catch(err=>{
         console.error(err);
@@ -862,12 +869,13 @@ function displayInfluencerDetail(i){
 function handleTabClick(e){
     tabs.forEach(t=>t.classList.remove('active'));
     e.target.classList.add('active');
-    [exploreView,campaignView,newsletterView,myInfluencersView].forEach(v=>v.classList.add('hidden'));
+    [exploreView,campaignView,newsletterView,myInfluencersView,planView].forEach(v=>{if(v)v.classList.add('hidden');});
     const t=e.target.dataset.tab;
     if(t==='explorar'){exploreView.classList.remove('hidden');populateTagFilters();filterInfluencersData();}
     else if(t==='campanas'){campaignView.classList.remove('hidden');showCampaignView('overview');}
     else if(t==='newsletters'){newsletterView.classList.remove('hidden');showNewsletterView('overview');}
     else if(t==='mis-influencers'){myInfluencersView.classList.remove('hidden');handleSubTabClick('influencers');}
+    else if(t==='cartelera'){planView.classList.remove('hidden');PlanCartelera.open();}
 }
 function destroyCharts(){for(const id in charts){if(charts[id]){charts[id].destroy();delete charts[id];}}}
 
